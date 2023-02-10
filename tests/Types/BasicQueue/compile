@@ -1,0 +1,15 @@
+#!/bin/bash
+
+if [[ ! -d "obj" ]]; then
+	mkdir obj
+fi
+if [[ ! -d "bin" ]]; then
+	mkdir bin
+fi
+
+g++ -c -g -O2 -oobj/main.o src/main.cpp -I../../../include &&
+g++ -c -g -O2 -oobj/Malloc.o ../../../source/Core/Malloc.cpp -I../../../include &&
+g++ obj/main.o obj/Malloc.o -obin/queue
+
+read -rsp $'Press any key to continue...' -n 1
+echo
