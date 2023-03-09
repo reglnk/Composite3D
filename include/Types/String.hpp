@@ -1,19 +1,23 @@
 #ifndef CM3D_BASIC_STRING_HPP
 #define CM3D_BASIC_STRING_HPP
 
-/* =================================
- * A lightweight c-string wrapper.
+/* ====================================================================
+ * A lightweight c-string wrapper, intended to be flexible as char*
+ * (unlike string from STL) and useful in low-level operations
 **/
 
 #include <Types/DynArrayIterators.hpp>
+
 #include <Core/Malloc.hpp>
+
 #include <Utility/Std.hpp>
 #include <Utility/SCstring.hpp>
 #include <Utility/Debug.hpp>
+#include <Utility/Hash.hpp>
 
 #include <utility>
 
-// @todo test
+// @todo avoid UB in new standard
 
 namespace cm3d
 {
@@ -32,7 +36,7 @@ namespace cm3d
 		using valueType = char;
 		
 		inline String() noexcept: buf(nullptr), len(0) {}
-		inline String(const String &s): len(s.len), buf(nullptr)
+		inline String(const String &s): buf(nullptr), len(s.len)
 		{
 			if (len) {
 				buf = (char *)mAlloc(len + 1);
@@ -51,7 +55,7 @@ namespace cm3d
 		inline String(char *s):
 			String((const char *)s) {}
 
-		inline String(const char *s, const size_t slen): len(slen), buf(nullptr)
+		inline String(const char *s, const size_t slen): buf(nullptr), len(slen)
 		{
 			buf = (char *)mAlloc(len + 1);
 			memcpy(buf, s, slen);
@@ -117,6 +121,13 @@ namespace cm3d
 				buf = nullptr;
 			}
 		}
+		CM3D_CXX14_CONSTEXPR_INLINE void finalize() {
+			len = 0;
+			if (buf) {
+				free(buf);
+				buf = nullptr;
+			}
+		}
 		CM3D_CXX14_CONSTEXPR_INLINE const char *c_str() const {
 			return buf;
 		}
@@ -160,14 +171,18 @@ namespace cm3d
 		CM3D_CXX14_CONSTEXPR_INLINE crIterator crBegin() const { return crIterator(buf + len - 1); }
 		CM3D_CXX14_CONSTEXPR_INLINE crIterator crEnd() const { return crIterator(buf - 1); }
 
-		inline char *find(const char Ch) const {
+		inline char *find(const char Ch) const noexcept {
 			return strchr(buf, Ch);
 		}
-		inline const char *find(const char *s) const {
+		inline const char *find(const char *s) const noexcept {
 			return strstr(buf, s);
 		}
-		inline const char *find(const String &s) const {
+		inline const char *find(const String &s) const noexcept {
 			return strstr(buf, s.c_str());
+		}
+		inline void resize(const size_t newSize) {
+			buf = (char *)mRealloc(buf, newSize + 1);
+			len = newSize;
 		}
 /* =============================================================== */
 
@@ -252,11 +267,16 @@ namespace cm3d
 			return s != cs;
 		}
 	};
+	namespace Hash
+	{
+		inline uint32_t u32(const String &s) noexcept
+		{
+			return cm3d::Hash::u32(s.c_str(), s.size());
+		}
+	}
 }
 
 #ifndef CM3D_BASIC_STRING_DISABLE_STL_COMPAT
-
-#include <Utility/Hash.hpp>
 
 #include <cstdint>
 #include <cstddef>
@@ -268,23 +288,7 @@ namespace std
 	{
 		size_t operator ()(const cm3d::String &e) const
 		{
-			const size_t times = e.size() >> 2; // / sizeof(uint32_t)
-			auto ptr = reinterpret_cast<const uint32_t *>(e.c_str());
-			
-			size_t h;
-			for (size_t i = 0; i < times; ++i)
-				h ^= cm3d::Hash::u32(ptr[i] + i);
-
-			uint32_t l = 0;
-			for (size_t i = times << 2; i < e.size(); ++i) {
-				l ^= e[i] << (8 * (e.size() - i));
-			}
-			CM3D_ASSERT((l & 0xFF) == 0);
-
-			// So that array of length s=sizeof(uint32_t)*N+2 ended with {a, b}
-			// will have different hash than one of s+1 bytes ended with {a, b, 0}
-			l ^= e.size() - (times << 2);
-			h ^= cm3d::Hash::u32(l);
+			uint32_t h = cm3d::Hash::u32(e);
 			
 // @todo produce really 8-byte hash
 #		if __SIZEOF_SIZE_T__ == 8

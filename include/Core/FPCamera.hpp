@@ -2,7 +2,7 @@
 #define CM3D_FIRST_PERSON_CAMERA_HPP
 
 /*==================================================================
- * First Person Camera. World-up axis can be any 3D unit vector.
+ * A First Person Camera. World-up axis can be any 3D unit vector.
  */
 
 #include <Types/Aliases.hpp>
@@ -11,7 +11,7 @@
 
 #include <Core/Math.hpp>
 
-// @TODO: customizable functions
+// @todo
 // onReachUpperLimit, onReachLowerLimit -- angle limiting callbacks
 
 namespace cm3d
@@ -39,7 +39,8 @@ namespace cm3d
 		};
 
 		float FoV; // radians
-		float renderDist;
+		float frustumNear;
+		float frustumFar;
 		sReal offsetRsp; // response to mouse offset
 		sReal accFactor; // acceleration
 		sReal dmpFactor; // damping
@@ -56,56 +57,81 @@ namespace cm3d
 			glm::crvec3 forwardDir = glm::crvec3(0.0, 0.0, 1.0),
 			glm::crvec3 upDir = glm::crvec3(0.0, 1.0, 0.0),
 			float FoV = 1.57f,
-			float renderDist = 300.0f,
+			float frustumFar = 300.0f,
 			sReal offsetResponse = 0.017,
 			sReal accFactor = 40.0,
 			sReal dmpFactor = 4.0,
 			Vector3 *pivot = NULL,
 			ViewMode mode = Free
-		);
+		):
+			wPos(wPos), wVel(wVel),
+			unitForward(forwardDir), unitUp(upDir), unitUpAbsolute(upDir),
+			FoV(FoV), frustumFar(frustumFar), 
+			accFactor(accFactor), dmpFactor(dmpFactor), offsetRsp(offsetResponse),
+			pivotPoint(pivot), vMode(mode)
+		{
+			// if initialized as free, then update just angle
+			// otherwise look in update & update unitUpAbsolute
+			verticalAngle = std::acos(glm::dot(upDir, forwardDir));
+			update();
+		}
 		
-		// @todo explicit float & double variants?
-		glm::mat<4, 4, sReal> viewMatrix(sReal aspect);
+		inline glm::mat4 viewMatrix(float aspect)
+		{
+			// @todo rework wPos behaviour so that the matrix precision won't be
+			// awful at very far point from world center
+			using namespace glm;
+			vec3 w_pos(wPos.x, wPos.y, wPos.z);
+			mat4 look_at = lookAt(w_pos, w_pos + vec3(unitForward), vec3(unitUp));
+			return perspective(FoV, aspect, 0.1f, frustumFar) * look_at;
+		}
+		inline glm::dmat4 viewMatrix(sReal aspect)
+		{
+			using namespace glm;
+			dvec3 w_pos(wPos.x, wPos.y, wPos.z);
+			dmat4 look_at = lookAt(w_pos, w_pos + dvec3(unitForward), dvec3(unitUp));
+			return perspective((double)FoV, (double)aspect, 0.1, (double)frustumFar) * look_at;
+		}
 		
 		void applyVelDelta(const int direction, const sReal dTime);
 		void offsetCallback(const double off_x, const double off_y);
 		void scrollCallback(const double off_x, const double off_y, const int glfwMods);
 		
 		void processPhysics(const sReal dTime);
-		void updateDirections();
+		void update();
 
-		constexpr const sReal getVerticalAngle() const {
+		inline const sReal getVerticalAngle() const {
 			return verticalAngle;
 		}
-		constexpr glm::crvec3 const &getUp() const {
+		inline glm::crvec3 const &getUp() const {
 			return unitUp;
 		}
-		constexpr glm::crvec3 const &getForward() const {
+		inline glm::crvec3 const &getForward() const {
 			return unitForward;
 		}
-		constexpr glm::crvec3 const &getLeft() const {
+		inline glm::crvec3 const &getLeft() const {
 			return unitLeft;
 		}
-		constexpr glm::crvec3 const &getUpAbsolute() const {
+		inline glm::crvec3 const &getUpAbsolute() const {
 			return unitUpAbsolute;
 		}
 
 		inline void setVerticalAngle(const sReal angle) {
 			verticalAngle = angle;
-			updateDirections();
+			update();
 		}
 		inline void setUnitForward(glm::crvec3 const &forward) {
 			verticalAngle = std::acos(glm::dot(unitUpAbsolute, forward));
 			unitForward = forward;
-			updateDirections();
+			update();
 		}
 
-	private:
+	protected:
 		sReal verticalAngle; // angle between unitUpAbsolute & unitForward
 		
 		glm::crvec3 unitForward;
 		glm::crvec3 unitUp; // current up direction used to calculate lookAt
-		glm::crvec3 unitLeft; // cache (= glm::cross(unitUp, unitForward))
+		glm::crvec3 unitLeft; // == glm::cross(unitUp, unitForward)
 		glm::crvec3 unitUpAbsolute;
 
 		Vector3 *pivotPoint;

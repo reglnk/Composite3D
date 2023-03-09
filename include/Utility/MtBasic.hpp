@@ -5,7 +5,7 @@
 #include <condition_variable>
 
 // "fmtx.lock(); f = 78; fmtx.unlock();" to be
-// replaced with cm3d_access(fmtx, f = 78);
+// replaced with CM3D_ACCESS(fmtx, f = 78);
 #define CM3D_ACCESS(mtx, ...) do { \
 	(mtx).lock(); \
 	__VA_ARGS__; \

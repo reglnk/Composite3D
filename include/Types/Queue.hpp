@@ -23,7 +23,8 @@ namespace cm3d
 		size_t len;
 
 	public:
-		
+		using valueType = T;
+
 		using Iterator = slNodeIterator<T>;
 		using cIterator = slNodeIterator<const T>;
 		
@@ -39,7 +40,8 @@ namespace cm3d
 				pop();
 		}
 
-		inline void push(const T &data) {
+		inline void push(const T &data)
+		{
 			if (endNode) {
 				endNode->next = new SLNode<T>(data);
 				endNode = endNode->next;
@@ -50,7 +52,8 @@ namespace cm3d
 			}
 			++len;
 		}
-		inline SLNode<T> *detach() noexcept {
+		inline SLNode<T> *detach() noexcept
+		{
 			SLNode<T> *bnode = begNode;
 			begNode = begNode->next;
 			if (!begNode)
@@ -61,16 +64,22 @@ namespace cm3d
 		inline void pop() noexcept {
 			delete detach();
 		}
-		CM3D_CXX14_CONSTEXPR_INLINE const slNodeIterator<T> begin() const {
-			return slNodeIterator<T>(begNode);
+		CM3D_CXX14_CONSTEXPR_INLINE cIterator begin() const {
+			return cIterator(begNode);
 		}
-		CM3D_CXX14_CONSTEXPR_INLINE slNodeIterator<T> begin() {
-			return slNodeIterator<T>(begNode);
+		CM3D_CXX14_CONSTEXPR_INLINE Iterator begin() {
+			return Iterator(begNode);
 		}
-		CM3D_CXX14_CONSTEXPR_INLINE slNodeIterator<T> end() const {
-			return slNodeIterator<T>(nullptr);
+		CM3D_CXX14_CONSTEXPR_INLINE cIterator last() const {
+			return cIterator(endNode);
 		}
-		CM3D_CXX14_CONSTEXPR_INLINE const size_t length() const {
+		CM3D_CXX14_CONSTEXPR_INLINE Iterator last() {
+			return Iterator(endNode);
+		}
+		CM3D_CXX14_CONSTEXPR_INLINE Iterator end() const {
+			return Iterator(nullptr);
+		}
+		CM3D_CXX14_CONSTEXPR_INLINE size_t length() const {
 			return len;
 		}
 		CM3D_CXX14_CONSTEXPR_INLINE const T &front() const {

@@ -1,4 +1,4 @@
-#warning HardInfo.cpp isn't currently finished!
+#warning HardInfo.cpp isn't finished!
 
 #include <Core/HardInfo.hpp>
 
@@ -8,7 +8,7 @@
 #	include <fstream>
 #	include <cstring>
 #else
-#	include <Core/WinCPUInfo.hpp>
+#	include <windows.h>
 #endif
 
 

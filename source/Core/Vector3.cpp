@@ -1,6 +1,3 @@
-// 06 Nov, 2022
-// @todo benchmark and move some cache-friendly functions back to header (if there're ones)
-
 #include <Types/Vector3.hpp>
 
 namespace cm3d

@@ -1,0 +1,18 @@
+#!/bin/bash
+
+if [[ ! -d "obj" ]]; then
+	mkdir obj
+fi
+if [[ ! -d "bin" ]]; then
+	mkdir bin
+fi
+
+export CPP=g++
+
+$CPP -c -g -O2 -oobj/stdvec.o -D_DEBUG perf/stdvec.cpp -I../../../include &&
+$CPP -obin/stdvec obj/stdvec.o &&
+
+$CPP -c -g -O2 -oobj/dynarr.o -D_DEBUG perf/dynarr.cpp -I../../../include &&
+$CPP -obin/dynarr obj/dynarr.o ||
+
+read -rsp $'Press any key to continue...' -n 1 && echo

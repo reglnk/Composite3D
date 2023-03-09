@@ -1,119 +1,165 @@
 #ifndef CM3D_GL_SHADER_PROGRAM_HPP
 #define CM3D_GL_SHADER_PROGRAM_HPP
 
+#include <Core/FileSystem.hpp>
+#include <Core/GLSLPreprocessor.hpp>
+
 #include <Types/Aliases.hpp>
+#include <Types/DynArray.hpp>
+#include <Types/String.hpp>
 
 #include <glad/gl.h>
 #include <glm/gtc/type_ptr.hpp>
 
-#include <vector>
-#include <string>
+#include <map>
 #include <unordered_map>
-
-// @todo support #pragma cm3d_include <path>
-
+#include <stdexcept>
 
 namespace cm3d
 {
 	class GLShaderProgram
 	{
+	protected:
+		GLuint Id;
+		
+		// Stores lines to insert at begin of shader text
+		DynArray<String> defHeader;
+		
+		// Stores IDs of shaders for linking
+		std::map<GLenum, DynArray<GLuint>> compiledShaders;
+		
+		// Cached uniform locations
+		std::unordered_map<String, GLint> uniformLocations;
+
 	public:
-		GLShaderProgram();
-		GLShaderProgram(const char *vs_path, const char *fs_path, const char *gs_path = nullptr);
+		inline GLShaderProgram() {
+			Id = glCreateProgram();
+			if (!Id)
+				throw std::runtime_error("GLShaderProgram: glCreateProgram failed");
+		}
+		inline GLShaderProgram(GLShaderProgram const &other) = delete;
+		inline GLShaderProgram(GLShaderProgram &&rv) = delete;
 		
-		// Calls glCreateProgram and returns Id
-		GLuint Create();
-		
-		// glUseProgram(Id);
-		void Use();
-		
-		// Always returns 0 if link was successful.
-		int doLink();
+		inline ~GLShaderProgram() {
+			for (auto el: compiledShaders) {
+				auto &stage = el.second;
+				for (auto &shaderId: stage)
+					glDeleteShader(shaderId);
+			}
+			glDeleteProgram(Id);
+		}
+		inline GLuint getId() {
+			return Id;
+		}
+		inline void select() {
+			glUseProgram(Id);
+		}
 
-		// Compile array of strings (definitions applied)
-		GLint Compile(GLenum type, const std::vector<const GLchar *> &src);
-
-		// Alias for previous Compile.
-		GLint Compile(GLenum type, const GLchar *src);
-
-		// Alias for previous Compile.
-		GLint Compile(const char *path, GLenum type);
+		inline std::map<GLenum, DynArray<GLuint>> &getShaders() {
+			return compiledShaders;
+		}
+		inline std::unordered_map<String, GLint> &getUniformLocCache() {
+			return uniformLocations;
+		}
 		
-		// Selects some shader from compiled ones. Needs doLink() to take effect
-		bool selectShader(GLenum type, unsigned int index);
+		GLint getUniformLocation(const GLchar *uf) {
+			if (uniformLocations.count(uf))
+				return uniformLocations[uf];
+			
+			GLint loc = glGetUniformLocation(Id, uf);
+			uniformLocations[uf] = loc;
+			return loc;
+		}
+
+		// Compile the shader and mark for linking
+		bool compile(
+			GLenum type,
+			const GLchar *src, const GLint srclen,
+			String *output = nullptr,
+			const char *filewd = "."
+		);
+		
+		// Link all compiled shaders into the program
+		bool link(String *output = nullptr);
 		
 		// Detach shader if necessary, then delete
-		void deleteShader(GLenum type, unsigned int index);
+		inline void deleteShader(GLenum type, unsigned int index)
+		{
+			CM3D_ASSERT(compiledShaders.count(type) && index < compiledShaders[type].length())
+
+			// Check if the shader is necessary
+			auto it = compiledShaders[type].begin() + index;
+			glDeleteShader(*it);
+			compiledShaders[type].erase(it);
+		}
 		
 		/*
 		* Uniform setters
 		* ========================================== */
 		
-		void setInt(const GLchar *name, const GLint val);
-		void setUint(const GLchar *name, const GLuint val);
-		void setFloat(const GLchar *name, const GLfloat val);
-		
-		void setIvec2(const GLchar *name, const glm::ivec2 &val);
-		void setIvec3(const GLchar *name, const glm::ivec3 &val);
-		void setIvec4(const GLchar *name, const glm::ivec4 &val);
-		
-		void setUvec2(const GLchar *name, const glm::uvec2 &val);
-		void setUvec3(const GLchar *name, const glm::uvec3 &val);
-		void setUvec4(const GLchar *name, const glm::uvec4 &val);
-		
-		void setVec2(const GLchar *name, const glm::vec2 &val);
-		void setVec3(const GLchar *name, const glm::vec3 &val);
-		void setVec4(const GLchar *name, const glm::vec4 &val);
-		
-		void setMat2(const GLchar *name, const glm::mat2 *val, size_t count = 1);
-		void setMat3x3(const GLchar *name, const glm::mat3 *val, size_t count = 1);
-		void setMat4x4(const GLchar *name, const glm::mat4 *val, size_t count = 1);
+		inline void setInt(const GLchar *name, const GLint val) {
+			glUniform1i(getUniformLocation(name), val);
+		}
+		inline void setUint(const GLchar *name, const GLuint val) {
+			glUniform1ui(getUniformLocation(name), val);
+		}
+		inline void setFloat(const GLchar *name, const GLfloat val) {
+			glUniform1f(getUniformLocation(name), val);
+		}
 
-	#ifdef CM3D_GL_SHADER_EXTRA_IO
-		
+		inline void setIvec2(const GLchar *name, const glm::ivec2 &val) {
+			glUniform2i(getUniformLocation(name), val.x, val.y);
+		}
+		inline void setIvec3(const GLchar *name, const glm::ivec3 &val) {
+			glUniform3i(getUniformLocation(name), val.x, val.y, val.z);
+		}
+		inline void setIvec4(const GLchar *name, const glm::ivec4 &val) {
+			glUniform4i(getUniformLocation(name), val.x, val.y, val.z, val.w);
+		}
+
+		inline void setUvec2(const GLchar *name, const glm::uvec2 &val) {
+			glUniform2ui(getUniformLocation(name), val.x, val.y);
+		}
+		inline void setUvec3(const GLchar *name, const glm::uvec3 &val) {
+			glUniform3ui(getUniformLocation(name), val.x, val.y, val.z);
+		}
+		inline void setUvec4(const GLchar *name, const glm::uvec4 &val) {
+			glUniform4ui(getUniformLocation(name), val.x, val.y, val.z, val.w);
+		}
+
+		inline void setVec2(const GLchar *name, const glm::vec2 &val) {
+			glUniform2f(getUniformLocation(name), val.x, val.y);
+		}
+		inline void setVec3(const GLchar *name, const glm::vec3 &val) {
+			glUniform3f(getUniformLocation(name), val.x, val.y, val.z);
+		}
+		inline void setVec4(const GLchar *name, const glm::vec4 &val) {
+			glUniform4f(getUniformLocation(name), val.x, val.y, val.z, val.w);
+		}
+
+		inline void setMat2(const GLchar *name, const glm::mat2 *val, size_t count) {
+			glUniformMatrix2fv(getUniformLocation(name), count, GL_FALSE, (const GLfloat *)val);
+		}
+		inline void setMat3x3(const GLchar *name, const glm::mat3 *val, size_t count) {
+			glUniformMatrix3fv(getUniformLocation(name), count, GL_FALSE, (const GLfloat *)val);
+		}
+		inline void setMat4x4(const GLchar *name, const glm::mat4 *val, size_t count) {
+			glUniformMatrix4fv(getUniformLocation(name), count, GL_FALSE, (const GLfloat *)val);
+		}
+
 		/*
 		* Uniform getters
 		* ========================================== */
 		
-		void getIntArr(const GLchar *name, GLint *params);
-		void getUintArr(const GLchar *name, GLuint *params);
-		void getFloatArr(const GLchar *name, GLfloat *params);
-
-	#endif
-		
-		GLuint getId();
-
-		// Tries to get uniform from cache. If not found, calls glGetUniformLocation.
-		GLint getUniformLocation(const GLchar * uf);
-
-		inline std::unordered_map<GLenum, std::vector<GLuint>> &getShaders() {
-			return compiledShaders;
+		void getIntArr(const GLchar *name, GLint *params) {
+			glGetUniformiv(Id, getUniformLocation(name), params);
 		}
-		inline std::unordered_map<GLenum, GLuint> &getSelected() {
-			return selectedShaders;
+		void getUintArr(const GLchar *name, GLuint *params) {
+			glGetUniformuiv(Id, getUniformLocation(name), params);
 		}
-		inline std::unordered_map<const GLchar *, GLint> &getUniformLocCache() {
-			return uniformLocations;
+		void getFloatArr(const GLchar *name, GLfloat *params) {
+			glGetUniformfv(Id, getUniformLocation(name), params);
 		}
-		
-		// Stores lines to insert at begin of shader text.
-		// Is cleared after compiling
-		std::vector<const GLchar *> Header;
-
-		// log for messages from OpenGL on fails to compile shaders
-		std::string logPath;
-		
-	protected:
-		GLuint Id;
-		
-		// Stores IDs of shaders for linking
-		std::unordered_map<GLenum, std::vector<GLuint>> compiledShaders;
-		
-		// Stores indexes of selected shaders
-		std::unordered_map<GLenum, unsigned> selectedShaders;
-		
-		// Cached uniform locations
-		std::unordered_map<const GLchar *, GLint> uniformLocations;
 	};
 } // namespace cm3d
 

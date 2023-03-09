@@ -11,40 +11,6 @@
 
 namespace cm3d
 {
-	FPCamera::FPCamera
-	(
-		Vector3 wPos,
-		glm::crvec3 wVel,
-		glm::crvec3 forwardDir,
-		glm::crvec3 upDir,
-		float FoV,
-		float renderDist,
-		sReal offsetResponse,
-		sReal accFactor,
-		sReal dmpFactor,
-		Vector3 *pivot,
-		ViewMode mode
-	):
-		wPos(wPos), wVel(wVel),
-		unitForward(forwardDir), unitUp(upDir), unitUpAbsolute(upDir),
-		FoV(FoV), renderDist(renderDist), 
-		accFactor(accFactor), dmpFactor(dmpFactor), offsetRsp(offsetResponse),
-		pivotPoint(pivot), vMode(mode)
-	{
-		// if initialized as free, then update just angle
-		// otherwise look in updateDirections & update unitUpAbsolute
-		verticalAngle = std::acos(glm::dot(upDir, forwardDir));
-		updateDirections();
-	}
-
-	glm::mat<4, 4, sReal> FPCamera::viewMatrix(sReal aspect)
-	{
-		using namespace glm;
-		crvec3 w_pos(wPos.x, wPos.y, wPos.z);
-		mat<4, 4, sReal> look_at = lookAt(w_pos, w_pos + unitForward, unitUp);
-		return perspective((sReal)FoV, (sReal)aspect, (sReal)0.1, (sReal)renderDist) * look_at;
-	}
-
 	void FPCamera::applyVelDelta(const int direction, const sReal dTime)
 	{
 		using namespace glm;
@@ -95,7 +61,7 @@ namespace cm3d
 			unitLeft = vec3(ryaw * unitLeft);
 			unitForward = vec3(ryaw * unitForward);
 		}
-		updateDirections();
+		update();
 	}
 
 	void FPCamera::scrollCallback(const double off_x, const double off_y, const int glfwMods)
@@ -109,9 +75,9 @@ namespace cm3d
 				FoV = (sReal)3.14;
 		}
 		else {
-			renderDist += (sReal)25.0 * off_y;
-			if (renderDist < (sReal)25.0)
-				renderDist = (sReal)25.0;
+			frustumFar += (sReal)25.0 * off_y;
+			if (frustumFar < (sReal)25.0)
+				frustumFar = (sReal)25.0;
 		}
 	}
 
@@ -127,10 +93,10 @@ namespace cm3d
 			
 			wPos += wVel * dTime;
 		}
-		updateDirections();
+		update();
 	}
 
-	void FPCamera::updateDirections()
+	void FPCamera::update()
 	{
 		// @todo
 		// 1. update absolute-up vector by pivot point (if necessary)

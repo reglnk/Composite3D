@@ -16,7 +16,14 @@
 #include <type_traits>
 
 /* =======================================================================
- * A dynamic array class template. @todo move some code to .inl
+ * A dynamic array template.
+ *
+ * Warning: there is no 'pointer tracking', the behaviour related to
+ * lifetime of array members that contain pointers to other members of the
+ * array [after its reallocation] is undefined.
+ *
+ * @todo move some code to .inl
+ * @todo deep test
 **/
 
 // Define if the elements need to be default constructed/destructed
@@ -42,26 +49,37 @@ namespace cm3d
 		size_t len;
 		size_t maxlen;
 
-		static CM3D_CXX14_CONSTEXPR_INLINE size_t growFn(const size_t current) {
-			// nearly current * 1.625
-			return current + (current >> 1) + (current >> 3) + 1;
+		static inline T *p_allocMem(size_t _size)
+		{
+			if (alignof(T) <= sizeof(size_t))
+				return (T *)mAlloc(_size);
+			else return (T *)mAlignedAlloc(alignof(T), _size);
 		}
-		static CM3D_CXX14_CONSTEXPR_INLINE size_t shrinkFn(const size_t current) {
-			// nearly current * 0.625
-			return current - ((current >> 2) + (current >> 3));
+		static inline T *p_reallocMem(T *_mem, size_t _newsize, size_t _oldsize)
+		{
+			if (alignof(T) <= sizeof(size_t))
+				return (T *)mRealloc(_mem, _newsize);
+			else return (T *)mAlignedRealloc(_mem, alignof(T), _newsize, _oldsize);
 		}
-		inline void p_destructRange(T *const beg_, T *const end_) noexcept(CM3D_DYN_ARRAY_NOEXDEST(T)) {
+		static inline void p_freeMem(T *_mem)
+		{
+			if (alignof(T) <= sizeof(size_t))
+				return mFree(_mem);
+			else return mAlignedFree(_mem);
+		}
+		inline void p_destructRange(T *const _beg, T *const _end) noexcept(CM3D_DYN_ARRAY_NOEXDEST(T)) {
 			if (CM3D_DYN_ARRAY_SHDESTROY(T))
-				for (T *iter = beg_; iter != end_; ++iter)
+				for (T *iter = _beg; iter != _end; ++iter)
 					iter->~T();
 		}
-		inline void p_structDefault(T *const beg_, T *const end_) noexcept(CM3D_DYN_ARRAY_NOEXINIT(T)) {
-			if (CM3D_DYN_ARRAY_SHDEFCONS(T))
-				for (T *iter = beg_; iter != end_; ++iter)
-					*iter = T();
-			// Init with zeros for elements to destruct correctly later
-			else if (CM3D_DYN_ARRAY_SHDESTROY(T))
-				memset(beg_, 0, end_ - beg_);
+		inline void p_structDefault(T *const _beg, T *const _end) noexcept(CM3D_DYN_ARRAY_NOEXINIT(T))
+		{
+			if (CM3D_DYN_ARRAY_SHDEFCONS(T)) {
+				new(_beg) T[_end - _beg];
+			}
+			// Init with zeros to make elements destruct correctly
+			if (CM3D_DYN_ARRAY_SHDESTROY(T))
+				memset(_beg, 0, _end - _beg);
 		}
 		
 	public:
@@ -74,29 +92,26 @@ namespace cm3d
 
 		inline DynArray() noexcept: arr(NULL), len(0), maxlen(0) {}
 
-		inline DynArray(const size_t len) noexcept(CM3D_DYN_ARRAY_NOEXINIT(T))
+		inline DynArray(const size_t len)
 		: len(len), maxlen(len)
 		{
-			arr = (T *)mAlloc(sizeof(T) * maxlen);
+			arr = (T *)p_allocMem(sizeof(T) * maxlen);
 			p_structDefault(arr, arr + len);
 		}
 
-		// @todo test
-		inline DynArray(const DynArray<T> &other) noexcept(std::is_nothrow_copy_assignable<T>::value)
+		inline DynArray(const DynArray<T> &other)
 		: len(other.len), maxlen(other.len)
 		{
-			arr = (T *)mAlloc(sizeof(T) * maxlen);
+			arr = (T *)p_allocMem(sizeof(T) * maxlen);
 			if (CM3D_DYN_ARRAY_ISCOMP(T))
 				std::copy(other.arr, other.arr + other.len, arr);
 			else std::memcpy(arr, other.arr, len * sizeof(T));
 		}
 
-		// @todo test
 		template<typename IterType>
-		inline DynArray(IterType beg_, size_t len_)
-		noexcept(std::is_nothrow_copy_assignable<T>::value): len(0), maxlen(0)
+		inline DynArray(IterType beg_, size_t len_): len(0), maxlen(0)
 		{
-			arr = (T *)mAlloc(sizeof(T) * len_);
+			arr = (T *)p_allocMem(sizeof(T) * len_);
 			len = maxlen = len_;
 			for (Iterator iter = begin(); len_; len--)
 				*iter++ = *beg_++;
@@ -108,10 +123,9 @@ namespace cm3d
 			rv.arr = NULL;
 		}
 
-		inline DynArray(std::initializer_list<T> init_)
-		noexcept(std::is_nothrow_copy_assignable<T>::value): len(0), maxlen(0)
+		inline DynArray(std::initializer_list<T> init_): len(0), maxlen(0)
 		{
-			arr = (T *)mAlloc(sizeof(T) * init_.size());
+			arr = (T *)p_allocMem(sizeof(T) * init_.size());
 			
 			if (CM3D_DYN_ARRAY_ISCOMP(T))
 				std::copy(init_.begin(), init_.end(), arr);
@@ -123,8 +137,17 @@ namespace cm3d
 		inline ~DynArray() noexcept(CM3D_DYN_ARRAY_NOEXDEST(T)) {
 			if (arr) {
 				p_destructRange(arr, arr + len);
-				mFree(arr);
+				p_freeMem(arr);
 			}
+		}
+		
+		static CM3D_CXX14_CONSTEXPR_INLINE size_t growFn(const size_t current) {
+			// nearly current * 1.625
+			return current + (current >> 1) + (current >> 3) + 1;
+		}
+		static CM3D_CXX14_CONSTEXPR_INLINE size_t shrinkFn(const size_t current) {
+			// nearly current * 0.625
+			return current - ((current >> 2) + (current >> 3));
 		}
 
 		// Get forward offset of iterator of any type that belongs to this object
@@ -157,30 +180,13 @@ namespace cm3d
 		CM3D_CXX14_CONSTEXPR_INLINE crIterator crEnd() const { return crIterator(arr - 1); }
 
 		CM3D_CXX14_CONSTEXPR_INLINE size_t length() const { return len; }
+		CM3D_CXX14_CONSTEXPR_INLINE size_t size() const { return len; }
 		CM3D_CXX14_CONSTEXPR_INLINE size_t capacity() const { return maxlen; }
 
-		CM3D_CXX14_CONSTEXPR_INLINE Iterator find(const T &elem, Iterator f = NULL) noexcept {
-			if (!f)
-				f = this->begin();
-			for (; f != this->end(); ++f)
-				if (*f == elem)
-					break;
-	
-			return f;
-		}
-		CM3D_CXX14_CONSTEXPR_INLINE cIterator find(const T &elem, cIterator f = NULL) const noexcept {
-			if (!f)
-				f = this->begin();
-			for (; f != this->end(); ++f)
-				if (*f == elem)
-					break;
-	
-			return f;
-		}
 		CM3D_CXX14_CONSTEXPR_INLINE void clear() noexcept(CM3D_DYN_ARRAY_NOEXDEST(T)) {
 			if (arr) {
 				p_destructRange(arr, arr + len);
-				mFree(arr);
+				p_freeMem(arr);
 			}
 			arr = NULL;
 			len = maxlen = 0;
@@ -205,7 +211,7 @@ namespace cm3d
 			if (newlen < len)
 				p_destructRange(arr + newlen, arr + len);
 			
-			T *newarr = (T *)mRealloc(arr, sizeof(T) * newlen);
+			T *newarr = (T *)p_reallocMem(arr, sizeof(T) * newlen, sizeof(T) * len);
 			arr = newarr;
 			maxlen = newlen;
 		}
@@ -236,20 +242,15 @@ namespace cm3d
 			
 			autoShrink();
 		}
-		// @todo test
-		inline void insert(const T &elem, const size_t ind) {
-			resize(len + 1);
-			if (ind + 1 < len)
-				memmove(arr + ind + 1, arr + ind, sizeof(T) * (len - 1 - ind));
-			arr[ind] = elem;
-		}
 
 	protected:
 		CM3D_CXX14_CONSTEXPR_INLINE void nrInsertEmptyRange(
 			const size_t pos, const size_t len_
 		) noexcept {
+			CM3D_ASSERT(len + len_ <= maxlen);
 			T *src = arr + pos;
 			memmove(src + len_, src, sizeof(T) * (len - pos));
+			p_structDefault(src, src + len_);
 			len += len_;
 		}
 		CM3D_CXX14_CONSTEXPR_INLINE void insertEmptyRange(
@@ -258,41 +259,50 @@ namespace cm3d
 			autoGrow(len + len_);
 			nrInsertEmptyRange(pos, len_);
 		}
-		
-		// Check that the iterator pointer belongs to this array
-		// (note that end iterators still can point +/- 1 out of array bounds)
+
+	public:
+		// Check that the iterator belongs to this array
 		template<typename IterType>
 		CM3D_CXX14_CONSTEXPR_INLINE bool validateIterator(const IterType p)
 		const noexcept {
-			return p >= arr && p <= arr + len;
+			return (T *)p >= arr && (T *)p < arr + len;
 		}
-		template<typename IterType>
 		CM3D_CXX14_CONSTEXPR_INLINE bool validateIterators(
-			const IterType beg_, const IterType end_
+			const cIterator _beg, const cIterator _end
 		) const noexcept {
-			// Assume that end might equal beg
-			// (so that iterator pair selects 0 elements)
-			return validateIterator(beg_) &&
-				(validateIterator(end_ - 1) || validateIterator(end_));
+			return validateIterator(_beg) &&
+				((const T *)_end >= arr && (const T *)_end <= arr + len);
 		}
-		
+		CM3D_CXX14_CONSTEXPR_INLINE bool validateIterators(
+			const Iterator _beg, const Iterator _end
+		) const noexcept {
+			return validateIterator(_beg) &&
+				((T *)_end >= arr && (T *)_end <= arr + len);
+		}
+		CM3D_CXX14_CONSTEXPR_INLINE bool validateIterators(
+			const crIterator _beg, const crIterator _end
+		) const noexcept {
+			return validateIterator(_beg) &&
+				((const T *)_end - arr >= -1 && (const T *)_end < arr + len);
+		}
+		CM3D_CXX14_CONSTEXPR_INLINE bool validateIterators(
+			const rIterator _beg, const rIterator _end
+		) const noexcept {
+			return validateIterator(_beg) &&
+				((T *)_end - arr >= -1 && (T *)_end < arr + len);
+		}
 
-	public:
-	/* =============================================================================================
-	 * The methods for inserting elements of some data structures. (Not for inserting a
-	 * range of DynArray into itself. See nrInsert)
+	/* =========================================================================
+	 * The methods for inserting elements ranges
 	**/
-		// The basic template function shouldn't be used for inserting DynArray
-		// or other linear arrays' ranges.
-		template<typename IterType>
-		CM3D_CXX14_CONSTEXPR_INLINE void insert(
-			const size_t pos, IterType srcbeg, size_t srclen
-		) {
-			insertEmptyRange(pos, srclen);
-			T *dest = arr + pos;
-			std::copy(srcbeg, srcbeg + srclen, dest);
+		CM3D_CXX14_CONSTEXPR_INLINE void insert(const size_t pos, const T &source) {
+			insertEmptyRange(pos, 1);
+			arr[pos] = source;
 		}
-
+		CM3D_CXX14_CONSTEXPR_INLINE void insert(const size_t pos, T &&source) {
+			insertEmptyRange(pos, 1);
+			arr[pos] = source;
+		}
 		CM3D_CXX14_CONSTEXPR_INLINE void insert(
 			const size_t pos, cIterator srcbeg, const size_t srclen
 		) {
@@ -313,7 +323,7 @@ namespace cm3d
 		CM3D_CXX14_CONSTEXPR_INLINE void insert(
 			const size_t pos, T *srcbeg, const size_t srclen
 		) { this->insert(pos, Iterator(srcbeg), srclen); }
-		
+
 		CM3D_CXX14_CONSTEXPR_INLINE void insert(
 			const size_t pos, crIterator srcbeg, const size_t srclen
 		) {
@@ -331,66 +341,17 @@ namespace cm3d
 		CM3D_CXX14_CONSTEXPR_INLINE void insert(
 			const size_t pos, rIterator srcbeg, const size_t srclen
 		) { this->insert(pos, (crIterator)srcbeg, srclen); }
-	/* =============================================================================================
-	 * These methods guarantee that the array isn't resized within a call (useful for inserting
-	 * a range of a DynArray into itself).
-	**/
-	// @todo @dry
+
+		// This function shouldn't be used for inserting DynArray
+		// or other linear arrays' ranges.
 		template<typename IterType>
-		CM3D_CXX14_CONSTEXPR_INLINE void nrInsert(
+		CM3D_CXX14_CONSTEXPR_INLINE void insert(
 			const size_t pos, IterType srcbeg, size_t srclen
-		) noexcept(std::is_nothrow_copy_assignable<T>::value)
-		{
-			nrInsertEmptyRange(pos, srclen);
+		) {
+			insertEmptyRange(pos, srclen);
 			std::copy(srcbeg, srcbeg + srclen, arr + pos);
 		}
 
-		CM3D_CXX14_CONSTEXPR_INLINE void nrInsert(
-			const size_t pos, cIterator srcbeg, const size_t srclen
-		) noexcept(std::is_nothrow_copy_assignable<T>::value)
-		{
-			nrInsertEmptyRange(pos, srclen);
-			if (CM3D_DYN_ARRAY_ISCOMP(T))
-				memcpy(arr + pos, srcbeg, srclen);
-			else std::copy(srcbeg, srcbeg + srclen, arr + pos);
-		}
-
-		CM3D_CXX14_CONSTEXPR_INLINE void nrInsert(
-			const size_t pos, Iterator srcbeg, const size_t srclen
-		) noexcept(std::is_nothrow_copy_assignable<T>::value) {
-			return this->nrInsert(pos, (cIterator)srcbeg, srclen);
-		}
-
-		CM3D_CXX14_CONSTEXPR_INLINE void nrInsert(
-			const size_t pos, const T *srcbeg, const size_t srclen
-		) noexcept(std::is_nothrow_copy_assignable<T>::value) {
-			return this->nrInsert(pos, cIterator(srcbeg), srclen);
-		}
-
-		CM3D_CXX14_CONSTEXPR_INLINE void nrInsert(
-			const size_t pos, T *srcbeg, const size_t srclen
-		) noexcept(std::is_nothrow_copy_assignable<T>::value) {
-			return this->nrInsert(pos, Iterator(srcbeg), srclen);
-		}
-
-		CM3D_CXX14_CONSTEXPR_INLINE void nrInsert(
-			const size_t pos, crIterator srcbeg, const size_t srclen
-		) noexcept(std::is_nothrow_copy_assignable<T>::value)
-		{
-			cIterator fwEnd = srcbeg - 1;
-			cIterator fwBeg = fwEnd - srclen;
-
-			CM3D_ASSERT(validateIterators(fwBeg, fwEnd));
-
-			nrInsertEmptyRange(pos, srclen);
-			memcpy(arr + pos, fwBeg, srclen);
-		}
-
-		CM3D_CXX14_CONSTEXPR_INLINE void nrInsert(
-			const size_t pos, rIterator srcbeg, const size_t srclen
-		) noexcept(std::is_nothrow_copy_assignable<T>::value) {
-			return this->nrInsert(pos, (crIterator)srcbeg, srclen);
-		}
 	/* =============================================================================================
 	 * Methods for erasing certain elements
 	**/
@@ -414,10 +375,10 @@ namespace cm3d
 		inline DynArray<T> &operator=(const DynArray<T> &other)
 		{
 			if (arr)
-				mFree(arr);
+				p_freeMem(arr);
 			len = maxlen = other.len;
 
-			arr = (T *)mAlloc(sizeof(T) * maxlen);
+			arr = (T *)p_allocMem(sizeof(T) * maxlen);
 			if (CM3D_DYN_ARRAY_ISCOMP(T))
 				memcpy(arr, other.arr, len * sizeof(T));
 			else std::copy(other.arr, other.arr + len, arr);
@@ -427,7 +388,7 @@ namespace cm3d
 		inline DynArray<T> &operator=(const DynArray<T> &&rv) noexcept
 		{
 			if (arr)
-				mFree(arr);
+				p_freeMem(arr);
 			
 			this->arr = rv.arr;
 			this->len = rv.len;

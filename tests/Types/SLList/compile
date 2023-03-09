@@ -1,0 +1,19 @@
+#!/bin/bash
+
+if [[ ! -d "obj" ]]; then
+	mkdir obj
+fi
+if [[ ! -d "bin" ]]; then
+	mkdir bin
+fi
+
+export CPP=g++
+
+for entry in src/*; do
+	ent=${entry#*/}
+	e_name=${ent%.*}
+	echo $e_name
+
+	$CPP -c -g -oobj/"$e_name".o src/"$ent" -I../../../include &&
+	$CPP -g -obin/"$e_name" obj/"$e_name".o
+done

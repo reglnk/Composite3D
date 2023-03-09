@@ -34,7 +34,6 @@ namespace cm3d
 			this->m_data = data;
 			return *this;
 		}
-
 		CM3D_CXX14_CONSTEXPR_INLINE SLNode<T> *data() {
 			return m_data;
 		}
@@ -52,6 +51,12 @@ namespace cm3d
 		}
 		CM3D_CXX14_CONSTEXPR_INLINE const T &operator *() const {
 			return m_data->data;
+		}
+		CM3D_CXX14_CONSTEXPR_INLINE T *operator ->() {
+			return &m_data->data;
+		}
+		CM3D_CXX14_CONSTEXPR_INLINE const T *operator ->() const {
+			return &m_data->data;
 		}
 		CM3D_CXX14_CONSTEXPR_INLINE bool operator ==(
 			const slNodeIteratorBase<T> other

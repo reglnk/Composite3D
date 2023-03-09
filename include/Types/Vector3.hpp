@@ -32,11 +32,6 @@ namespace cm3d
 
 	/* ================================================ */
 
-		// Explicit conversion doesn't work as GLM allows
-		// only constructors of scalar type
-
-		// constexpr operator glm::crvec3() const;
-
 		constexpr explicit operator bool() const;
 	
 	/* ================================================ */

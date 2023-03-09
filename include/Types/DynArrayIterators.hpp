@@ -31,7 +31,6 @@ namespace cm3d
 			this->m_data = data;
 			return *this;
 		}
-
 		CM3D_CXX14_CONSTEXPR_INLINE T *data() {
 			return m_data;
 		}
@@ -49,6 +48,12 @@ namespace cm3d
 		}
 		CM3D_CXX14_CONSTEXPR_INLINE const T &operator *() const {
 			return *m_data;
+		}
+		CM3D_CXX14_CONSTEXPR_INLINE T *operator ->() {
+			return m_data;
+		}
+		CM3D_CXX14_CONSTEXPR_INLINE const T *operator ->() const {
+			return m_data;
 		}
 		CM3D_CXX14_CONSTEXPR_INLINE bool operator ==(
 			const dynArrIteratorBase<T> other
@@ -141,6 +146,18 @@ namespace cm3d
 		CM3D_CXX14_CONSTEXPR_INLINE bool operator <=(const dynArrForwardIterator<T> other) const {
 			return this->m_data <= other.m_data;
 		}
+		CM3D_CXX14_CONSTEXPR_INLINE bool operator >(const T *const other) const {
+			return this->m_data > other;
+		}
+		CM3D_CXX14_CONSTEXPR_INLINE bool operator >=(const T *const other) const {
+			return this->m_data >= other;
+		}
+		CM3D_CXX14_CONSTEXPR_INLINE bool operator <(const T *const other) const {
+			return this->m_data < other;
+		}
+		CM3D_CXX14_CONSTEXPR_INLINE bool operator <=(const T *const other) const {
+			return this->m_data <= other;
+		}
 		template<typename Ty>
 		friend class DynArray;
 	};
@@ -151,8 +168,18 @@ namespace cm3d
 		inline dynArrReverseIterator() noexcept = default;
 		inline dynArrReverseIterator(const dynArrReverseIterator<T> &it) = default;
 		inline dynArrReverseIterator(dynArrReverseIterator<T> &&rv) = default;
+		
 		CM3D_CXX14_CONSTEXPR_INLINE dynArrReverseIterator(T *data) noexcept:
 			dynArrIteratorBase<T>(data) {}
+		
+		CM3D_CXX14_CONSTEXPR_INLINE dynArrReverseIterator<T> operator =(const dynArrReverseIterator<T> &it) {
+			this->m_data = it.m_data;
+			return *this;
+		}
+		CM3D_CXX14_CONSTEXPR_INLINE dynArrReverseIterator<T> operator =(dynArrReverseIterator<T> &&rv) {
+			this->m_data = rv.m_data;
+			return *this;
+		}
 
 		template<typename intType>
 		CM3D_CXX14_CONSTEXPR_INLINE T &operator [](const intType i) {

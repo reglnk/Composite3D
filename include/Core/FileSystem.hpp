@@ -2,13 +2,12 @@
 #define CM3D_FILE_SYSTEM_HPP
 
 #include <Types/Aliases.hpp>
-#include <Types/BasicString.hpp>
+#include <Types/String.hpp>
 #include <Types/DynArray.hpp>
 
-#include <cstdint>
+#include <windows.h>
 
-// @todo symbolic links
-// @todo code for *nix
+#include <cstdint>
 
 namespace cm3d
 {
@@ -17,13 +16,16 @@ namespace cm3d
 		// Intended to store normalized unix-like path
 		typedef String sPath;
 
+		// @todo more types
 		enum class NodeType
 		{
 			NotExisting = 0,
 			RegularFile,
 			Directory,
 			SymbolicLink,
-			Device,
+			Socket, // *nix-only
+			SystemFile, // windows-only
+			Device, // char devices, block devices, ...
 			Unknown
 		};
 		namespace Attribute
@@ -70,7 +72,7 @@ namespace cm3d
 		};
 		
 		sPath concat(const sPath &p, const sPath &r, const char sep = '/');
-		void parentDir(String *path, bool allowRealloc = true);
+		void parentDir(sPath *path, bool allowRealloc = true);
 
 		bool isPathSymbol(char Ch);
 
@@ -85,17 +87,18 @@ namespace cm3d
 
 		inline int toNative(sPath *path)
 		{
-#		ifdef _WIN32
+#		ifndef _WIN32
 			return toUnixLike(path);
 #		else
 			return toWindowsLike(path);
 #		endif
 		}
 
+		int getFileSize(const char *path, sSize *size, const char *modes = "rb");
 		int readFile(const char *path, sByte *buffer, sSize readSize, const char *modes = "rb", sSize begPosition = 0); // fin
 
 		// @todo
-		int createNode(const sPath &path, const NodeType type, bool createDirs = false);
+		// int createNode(const sPath &path, const NodeType type, bool createDirs = false);
 
 		// File attributes are 4-byte on both linux and windows.
 		// If default provided, the function will check actual ones.
@@ -104,6 +107,41 @@ namespace cm3d
 		
 		int listDirectory(const sPath &path, DynArray<Entry> *entList);
 	}
-}
+	
+#	ifdef _WIN32
+	namespace FileSystemWin
+	{
+		class AccessViewer
+		{
+		protected:
+			PSECURITY_DESCRIPTOR pSecurityDesc;
+		public:
+			inline AccessViewer(LPCSTR objPath): pSecurityDesc(NULL) {
+				init(objPath);
+			}
+			inline ~AccessViewer() {
+				shutdown();
+			}
+			inline WINBOOL check() {
+				return pSecurityDesc != NULL;
+			}
+			inline void shutdown() {
+				if (pSecurityDesc) {
+					HANDLE hHeap = GetProcessHeap();
+					HeapFree(hHeap, 0, pSecurityDesc);
+					pSecurityDesc = NULL;
+				}
+			}
+			DWORD init(LPCSTR objPath);
+			DWORD getPerms(HANDLE hToken, LPDWORD pdwAccessMode);
+			DWORD getOwner(LPSTR *pUsername, LPSTR *pHost);
+		};
+		
+		FileSystem::sPath ensureAsterisk(const FileSystem::sPath &path);
+		DWORD getLocalAcctName(PSID pUserSID, LPSTR *pUsername, LPSTR *pHost);
 
+	} // namespace FileSystemWin
+#	endif // _WIN32
+
+} // namespace cm3d
 #endif // CM3D_UTILITY_FILE_SYSTEM_HPP

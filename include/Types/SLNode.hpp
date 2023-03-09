@@ -14,12 +14,10 @@ namespace cm3d
 		SLNode<T> *next;
 
 		inline SLNode(): next(nullptr) {}
-		inline SLNode(SLNode<T> const &other) = default;
-		inline SLNode(SLNode<T> &&rv) = default;
+		inline SLNode(SLNode<T> const &other): data(other.data), next(other.next) {}
+		inline SLNode(SLNode<T> &&rv): data(rv.data), next(rv.next) {}
 		
-		inline SLNode(T data): data(data), next(nullptr) {}
-		inline SLNode(SLNode<T> *other):
-			data(other->data), next(other) {}
+		inline SLNode(const T &data): data(data), next(nullptr) {}
 	};
 }
 
