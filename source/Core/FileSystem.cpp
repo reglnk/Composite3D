@@ -40,7 +40,7 @@ namespace cm3d
 {
 	namespace FileSystem
 	{
-		sPath concat(sPath const &p, sPath const &r, const char sep)
+		sPath concat(const sPath &p, const sPath &r, char sep)
 		{
 			if (p.back() == sep)
 				return p + r;

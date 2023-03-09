@@ -71,7 +71,7 @@ namespace cm3d
 				name(name), st(st) {}
 		};
 		
-		sPath concat(const sPath &p, const sPath &r, const char sep = '/');
+		sPath concat(const sPath &p, const sPath &r, char sep = '/');
 		void parentDir(sPath *path, bool allowRealloc = true);
 
 		bool isPathSymbol(char Ch);
