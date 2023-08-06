@@ -18,10 +18,6 @@
 /* =======================================================================
  * A dynamic array template.
  *
- * Warning: there is no 'pointer tracking', the behaviour related to
- * lifetime of array members that contain pointers to other members of the
- * array [after its reallocation] is undefined.
- *
  * @todo move some code to .inl
  * @todo deep test
 **/
