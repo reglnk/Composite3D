@@ -1,6 +1,6 @@
 #warning HardInfo.cpp isn't finished!
 
-#include <Core/HardInfo.hpp>
+#include <cm3d/Core/HardInfo.hpp>
 
 #ifndef _WIN32
 #	include <unistd.h>

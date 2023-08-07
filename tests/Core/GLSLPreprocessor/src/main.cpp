@@ -1,5 +1,5 @@
-#include <Core/GLSLPreprocessor.hpp>
-#include <Core/FileSystem.hpp>
+#include <cm3d/Core/GLSLPreprocessor.hpp>
+#include <cm3d/Core/FileSystem.hpp>
 
 #include <cstdio>
 

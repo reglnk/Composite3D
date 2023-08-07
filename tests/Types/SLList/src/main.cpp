@@ -3,8 +3,8 @@
 #include <random>
 #include <string>
 
-#include <Types/String.hpp>
-#include <Types/SLList.hpp>
+#include <cm3d/Types/String.hpp>
+#include <cm3d/Types/SLList.hpp>
 
 using namespace cm3d;
 

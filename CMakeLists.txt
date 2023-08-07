@@ -71,19 +71,10 @@ endif()
 
 # =====================================
 
-add_subdirectory(external/lua) # targets: lua
-add_subdirectory(source) # targets: cm3d
-add_dependencies(cm3d lua)
+add_subdirectory(external/lua)
+add_subdirectory(source)
+add_dependencies(cm3dcore lua)
 
 if (CM3D_BUILD_TESTS)
 	add_subdirectory(tests)
 endif()
-
-set_target_properties(cm3d PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CM3D_RUNTIME_OUTPUT_DIR})
-
-target_include_directories(cm3d PRIVATE ${CM3D_INTERNAL_INCDIRS})
-target_link_libraries(cm3d PRIVATE
-	${CM3D_INTERNAL_ASSIMP_LIBS}
-	${CM3D_INTERNAL_GLFW_LIBS}
-	${CM3D_INTERNAL_LUA_LIBS}
-)

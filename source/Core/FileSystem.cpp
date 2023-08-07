@@ -1,6 +1,6 @@
-#include <Core/FileSystem.hpp>
-#include <Utility/SCstring.hpp>
-#include <Utility/Debug.hpp>
+#include <cm3d/Core/FileSystem.hpp>
+#include <cm3d/Utility/SCstring.hpp>
+#include <cm3d/Utility/Debug.hpp>
 
 #include <fstream>
 #include <cstdio>
@@ -357,19 +357,22 @@ namespace cm3d
 				nS->attrib |= pExec * ((md & S_IXOTH) != 0);
 			}
 			
-			String::crIterator iter;
-			for (iter = path.crEnd(); iter != path.crBegin(); ++iter)
+			String::cIterator iter;
+			for (iter = path.cBegin(); iter != path.cEnd(); ++iter)
 				if (*iter == '/')
 					break;
-			const char *fname = iter;
 			
+			const char *fname = iter == path.cEnd() ? path.cBegin() : iter;
+			
+			// for windows compatibility
 			nS->attrib |= aHidden * (iter[1] == '.' &&
-				// for windows compatibility
 				!(isCurrentPointer(fname) || isParentPointer(fname))
 			);
+			
 			auto usr = getpwuid(geteuid());
 			if (!usr)
 				return 2;
+			
 			nS->owner = usr->pw_name;
 			return 0;
 		
@@ -468,6 +471,7 @@ namespace cm3d
 				struct dirent *entry = entries[e];
 				Entry fEnt = {entry->d_name, NodeState()};
 				retcode |= checkNode(FileSystem::concat(path, fEnt.name), &fEnt.st);
+				entList->pushBack(std::move(fEnt));
 				free(entry);
 			}
 			free(entries);

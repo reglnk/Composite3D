@@ -1,4 +1,0 @@
-#!/bin/bash
-g++ main.cpp -omath -O2 -I../../../include -I../../../deps/glm
-sleep 1
-

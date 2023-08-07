@@ -1,6 +1,6 @@
-#include <Types/String.hpp>
-#include <Core/GLSLPreprocessor.hpp>
-#include <Core/FileSystem.hpp>
+#include <cm3d/Types/String.hpp>
+#include <cm3d/Core/GLSLPreprocessor.hpp>
+#include <cm3d/Core/FileSystem.hpp>
 
 #include <cstdio>
 #include <cstring>
@@ -40,7 +40,7 @@ namespace cm3d
 			return 0;
 		}
 
-		int processDirective(
+		int processDirective (
 			const char *beg, // the pointer to a space/tab after #directive
 			const Directive type,
 			DynArray<char> *dest, // output
@@ -108,9 +108,8 @@ namespace cm3d
 						if (fseek(fp, 0, SEEK_SET)) break;
 
 						String fileBuf(fileSize);
-						// if (fread(fileBuf.data(), 1, fileSize, fp) != fileSize)
-						// 	break;
-						printf("fread: %d size: %d\n", (int)fread(fileBuf.data(), 1, fileSize, fp), (int)fileSize);
+						if (fread(fileBuf.data(), 1, fileSize, fp) != fileSize)
+							break;
 						fileBuf[fileSize] = '\0';
 						fclose(fp);
 
@@ -133,7 +132,7 @@ namespace cm3d
 			return Status::DirectiveSkip;
 		}
 
-		int processSourceBlock(
+		int processSourceBlock (
 			const char *src, // current source code position
 			DynArray<char> *dest, // the preprocessed text is appended here
 			const FileSystem::sPath &srcPath,

@@ -1,9 +1,6 @@
-#include <Core/FileSystem.hpp>
+#include <cm3d/Core/FileSystem.hpp>
 #include <cstdio>
-
-#ifndef _WIN32
-#error FileSystem isn't finished for Linux
-#endif
+#include <cinttypes>
 
 using namespace cm3d;
 
@@ -39,7 +36,7 @@ int main(int argc, char **argv)
 			attrib[aiter++] = 'H';
 		attrib[aiter] = 0;
 
-		printf("%s | %-30s | owner: %-20s | size: %8llu | attrib: %s\n",
+		printf("%s | %-30s | owner: %-20s | size: %" PRId64 " | attrib: %s\n",
 			ntype, e.name.c_str(), e.st.owner.c_str(), e.st.size, attrib);
 	}
 }

@@ -1,5 +1,5 @@
-#include <Core/GLShaderProgram.hpp>
-#include <Core/FileSystem.hpp>
+#include <cm3d/Core/GLShaderProgram.hpp>
+#include <cm3d/Core/FileSystem.hpp>
 
 #include <fstream>
 #include <iterator>

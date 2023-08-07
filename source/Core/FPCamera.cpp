@@ -1,6 +1,6 @@
-#include <Core/FPCamera.hpp>
-#include <Core/Math.hpp>
-#include <Types/Linear.hpp>
+#include <cm3d/Core/FPCamera.hpp>
+#include <cm3d/Core/Math.hpp>
+#include <cm3d/Types/Linear.hpp>
 
 #include <GLFW/glfw3.h>
 
