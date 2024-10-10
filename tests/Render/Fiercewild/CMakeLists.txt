@@ -27,8 +27,20 @@ testsRenderFiercewild
 	"${CM3D_INTERNAL_LUA_LIBS}"
 	"${CM3D_INTERNAL_GLFW_LIBS}"
 )
-# add_custom_command (TARGET testsRenderFiercewild POST_BUILD
-    # COMMAND cp -f "${CMAKE_CURRENT_SOURCE_DIR}/objects.lua" "$<TARGET_FILE_DIR:testsRenderFiercewild>"
-    # COMMAND cp -rf "${CMAKE_CURRENT_SOURCE_DIR}/models" "$<TARGET_FILE_DIR:testsRenderFiercewild>"
-    # COMMAND cp -rf "${CMAKE_CURRENT_SOURCE_DIR}/resources" "$<TARGET_FILE_DIR:testsRenderFiercewild>"
-# )
+
+add_custom_command (
+TARGET testsRenderFiercewild
+POST_BUILD
+    COMMAND ${CMAKE_COMMAND}
+    -D src="${CMAKE_CURRENT_SOURCE_DIR}/objects.lua"
+    -D dest="$<TARGET_FILE_DIR:testsRenderFiercewild>/objects.lua"
+    -P "${CM3D_INTERNAL_ROOT}/cmake/copyifmissing.cmake"
+    COMMAND ${CMAKE_COMMAND}
+    -D src="${CMAKE_CURRENT_SOURCE_DIR}/models"
+    -D dest="$<TARGET_FILE_DIR:testsRenderFiercewild>/models"
+    -P "${CM3D_INTERNAL_ROOT}/cmake/copyifmissing.cmake"
+    COMMAND ${CMAKE_COMMAND}
+    -D src="${CMAKE_CURRENT_SOURCE_DIR}/resources"
+    -D dest="$<TARGET_FILE_DIR:testsRenderFiercewild>/resources"
+    -P "${CM3D_INTERNAL_ROOT}/cmake/copyifmissing.cmake"
+)
