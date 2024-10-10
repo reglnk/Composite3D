@@ -3,12 +3,26 @@
 in vec3 wFragPos;
 in vec2 wTexCoords;
 in vec3 wNormal;
-in vec3 wForce;
 
 out vec4 FragColor;
 
+uniform vec3 uColAmbient;
+uniform vec3 uColDiffuse;
+uniform vec3 uColSpecular;
+uniform vec3 uColEmissive;
+uniform vec3 uColTransparent;
+
+uniform float uPropOpacity;
+uniform float uPropRoughness;
+uniform float uPropMetalness;
+
+uniform sampler2D uTexBaseColor;
+uniform sampler2D uTexDiffuse;
+uniform sampler2D uTexSpecular;
+
 void main()
 {
-	FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+	vec3 diffuse = vec3(texture(uTexBaseColor, wTexCoords));
+	FragColor = vec4(diffuse, 1.0);
 }
 
