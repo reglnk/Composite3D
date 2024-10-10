@@ -1,0 +1,123 @@
+Composite3D World format
+
+Glossary:
+a.sz. = Applicable size
+World = the class descried in <cm3d/Core/World.hpp>
+Worldfile = the file used as a full binary representation of World and described here
+UniqueStorage = the data structure described in <cm3d/Types/UniqueStorage.hpp>
+
+The document includes:
+- binary description of classes and structures related to World, required for (de)serialization to/from binary files;
+- full specification and binary description of Worldfile and order of the above structures to be put in it;
+- ways of processing data and importance of the data in each part of Worldfile.
+
+The Worldfile has extension .cm3w in all applicable filesystems.
+Each entire valid object of World class can be serialized into one Worldfile without loss of information,
+and hence be deserialized from any valid Worldfile.
+
+When (de)serializing, the key-value pairs of UniqueStorage cannot change value for:
+- World::objects
+- World::sharedModules
+(unlike private modules, which are stored in UniqueStorage for convenient insertion and deletion only)
+
+Following numeric descriptions are used as for C language. Types are from <stdint.h>.
+Where applicable, binary structures layout is described with C language, but:
+- considering that padding between structure elements is equal to 0;
+- variable memory block are written as `type field[size]`, out of C standard, considering they are assigned a memory block of a.sz. and filled with applicable data from Worldfile or for writing to it.
+
+The Tables, Modules & Objects don't require to be checked before loading certain data, nor require before saving data, unlike Header.
+Positions of Objects and Modules may be mixed across their data block.
+
+# Layouts =======================
+
+struct Header
+{
+    char mark[4]; /* must equal to {'C', 'M', '3', 'W'} */
+    uint32_t endianness; /* In hexadecimal, for LE: 71,d0,ee,f5 BE: f5,ee,d0,71
+        So, the number 0xf5eed071 in selected endianness. Further, consider all numbers
+        are in the same endianness. */
+    
+    uint32_t version; /* Unique version identifier of the format. The current document describes version number 0. */
+    uint32_t blkMetaSize; /* Meta block size, from 1 byte to a.sz. */
+    uint64_t blkObjMapSize; /* Size of objects mapping, from sizeof(uint64_t) to a.sz. */
+    uint64_t blkSharedMapSize; /* Size of shared objects mapping, from sizeof(uint64_t) to a.sz. */
+};
+
+struct Metadata
+{
+    char worldName[a.sz.]; /* '\0' symbol is required. */
+    char _remainingSpace[(blkMetaSize - sizeof(worldName)]; /* doesn't matter */
+}
+
+struct idLocData
+{
+    uint64_t id; // may be allocated module ID or object ID
+    uint64_t fileOffset;
+};
+
+struct objectLocations
+{
+    uint64_t blkObjLocLen;
+    struct idLocData data[blkObjLocLen];
+    
+    /* doesn't matter */
+    char remainingSpace[blkObjMapSize - offsetof(objectLocations, remainingSpace)];
+};
+
+struct shrModulesLocations
+{
+    uint64_t blkSharedLocLen;
+    struct idLocData data[blkSharedLocLen];
+    
+    /* doesn't matter */
+    char remainingSpace[blkSharedMapSize - offsetof(shrModulesLocations, remainingSpace)];
+};
+
+struct Module
+{
+    uint32_t mType;
+    uint64_t mSize;
+    
+    /* size: mSize; contents are defined by mType and the type of module itself. */
+    char data[mSize];
+};
+
+struct Object
+{
+	uint64_t numPrivateModules;
+    uint64_t numShrModules;
+    uint64_t shrModulesIds[numShrModules]; /* count: numShrModules */
+    struct Module modules[numPrivateModules]; /* count: numPrivateModules */
+};
+
+struct Worldfile
+{
+    struct Header header;
+    struct Metadata meta;
+    struct objectLocations objLocTable;
+    struct shrModulesLocations shrModulesLocTable;
+    
+    /* the order of following data may be mixed and chaotic,
+       while only maintaining integrity of each Object and Module, and following above tables */
+	mixed {
+		struct Object objects[];
+		struct Module shrModules[];
+		char remainingSpace[];
+	} data;
+};
+
+ideas for next format:
+1. add full object size to idLocData (uint64_t)
+for optimization while reading directly from disk (partially)
+
+for example:
+'x' - the data which needs to be loaded
+'.' - unneeded data
+0----------------------------------------1--------2-------3-----4-------
+[objLocTable][shrModulesLocTable]........xxxxxx.xxx.......xxxxxxx.......
+
+So it would take only 2 calls of disk reading: for sections 1...2 and 3...4,
+even if there're more than 2 objects (or shared modules).
+
+2. remove shared modules at all cuz that behavior may be done via
+creating some object and adding it as a dependency to other objects which share its module.
