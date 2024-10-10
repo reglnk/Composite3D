@@ -48,7 +48,7 @@ int main(int argc, char **argv)
 	std::cout << "id: " << surf.getId() << '\n';
 	String outp;
 	surf.load(openfile, &outp);
-	if (outp.size())
+	if (outp.length())
 		std::cout << outp.c_str() << '\n';
 	
 	bool sv = argc > 2 && !strcmp(argv[2], "-v");

@@ -1,4 +1,6 @@
 add_subdirectory(Core)
 add_subdirectory(Modules)
+add_subdirectory(Render)
 add_subdirectory(Types)
 add_subdirectory(Utility)
+add_subdirectory(Serialization)

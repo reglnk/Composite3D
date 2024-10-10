@@ -1,7 +1,7 @@
 #ifndef CM3D_CRVEC3_HPP
 #define CM3D_CRVEC3_HPP
 
-#include <cm3d/Types/Aliases.hpp>
+#include <cm3d/Tl/Aliases.hpp>
 #include <glm/glm.hpp>
 
 namespace glm

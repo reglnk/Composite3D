@@ -3,8 +3,8 @@
 set (cm3dcore_SOURCES
 	FileSystem.cpp
 	FPCamera.cpp
-	GLShaderProgram.cpp
-	GLSLPreprocessor.cpp
+	GlobalState.cpp
+	Graphics.cpp
 	HardInfo.cpp
 	LogManager.cpp
 	Vector3.cpp
@@ -12,6 +12,7 @@ set (cm3dcore_SOURCES
 
 set_source_files_properties(${cm3dcore_SOURCES} PROPERTIES LANGUAGE CXX)
 add_library(cm3dcore STATIC ${cm3dcore_SOURCES})
+add_dependencies(cm3dcore lua)
 
 set_target_properties(cm3dcore PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CM3D_RUNTIME_OUTPUT_DIR})
 

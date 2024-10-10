@@ -6,8 +6,8 @@
  * before creation and applying after/at creation of the window.
 **/
 
-#include <cm3d/Types/String.hpp>
-#include <cm3d/Types/DynArray.hpp>
+#include <cm3d/Tl/String.hpp>
+#include <cm3d/Tl/DynArray.hpp>
 
 #include <glm/gtc/type_ptr.hpp>
 #include <GLFW/glfw3.h>

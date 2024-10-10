@@ -6,7 +6,7 @@
 #ifndef CM3D_TYPES_SCALAR_HPP
 #define CM3D_TYPES_SCALAR_HPP
 
-#include <cm3d/Types/Aliases.hpp>
+#include <cm3d/Tl/Aliases.hpp>
 
 namespace cm3d
 {
@@ -17,11 +17,14 @@ namespace cm3d
 
 	/* ============================================== */
 
-		inline Scalar() noexcept = default;
-		inline Scalar(sReal val);
+		constexpr inline Scalar(): lv(), rv() {}
+
+		constexpr inline Scalar(sReal val)
+		: lv(static_cast<sInteger>(val)), rv(val - lv)
+		{}
 		
-		constexpr Scalar(sInteger lv);
-		constexpr Scalar(sInteger lv, sReal rv);
+		constexpr Scalar(sInteger lv): lv(lv), rv(0.0) {}
+		constexpr Scalar(sInteger lv, sReal rv): lv(lv), rv(rv) {}
 
 		template<typename T>
 		constexpr explicit operator T() const;
@@ -29,40 +32,44 @@ namespace cm3d
 
 	/* ============================================== */
 
-		constexpr bool operator==(Scalar const &sc) const;
-		constexpr bool operator!=(Scalar const &sc) const;
+		constexpr bool operator ==(Scalar const &sc) const;
+		constexpr bool operator !=(Scalar const &sc) const;
 
-		constexpr bool operator>(Scalar const &sc) const;
-		constexpr bool operator>=(Scalar const &sc) const;
+		constexpr bool operator >(Scalar const &sc) const;
+		constexpr bool operator >=(Scalar const &sc) const;
 
-		constexpr bool operator<(Scalar const &sc) const;
-		constexpr bool operator<=(Scalar const &sc) const;
-
-	/* ============================================== */
-
-		constexpr Scalar operator+(Scalar sc) const;
-
-		constexpr Scalar operator-(Scalar sc) const;
-
-		constexpr Scalar operator*(sReal sc) const;
-		constexpr Scalar operator*(Scalar sc) const;
-
-		constexpr Scalar operator/(sReal sc) const;
-		constexpr Scalar operator/(Scalar sc) const;
+		constexpr bool operator <(Scalar const &sc) const;
+		constexpr bool operator <=(Scalar const &sc) const;
 
 	/* ============================================== */
 
-		constexpr Scalar & operator=(Scalar sc);
+		constexpr Scalar operator +(Scalar const &sc) const;
 
-		constexpr Scalar & operator+=(Scalar sc);
+		constexpr Scalar operator -(Scalar const &sc) const;
 
-		constexpr Scalar & operator-=(Scalar sc);
+		constexpr Scalar operator *(sReal sc) const;
+		constexpr Scalar operator *(Scalar const &sc) const;
 
-		constexpr Scalar & operator*=(sReal sc);
-		constexpr Scalar & operator*=(Scalar sc);
+		constexpr Scalar operator /(sReal sc) const;
+		constexpr Scalar operator /(Scalar const &sc) const;
 
-		constexpr Scalar & operator/=(sReal sc);
-		constexpr Scalar & operator/=(Scalar sc);
+	/* ============================================== */
+
+		constexpr Scalar &operator =(Scalar const &sc) {
+			lv = sc.lv;
+			rv = sc.rv;
+			return *this;
+		}
+
+		constexpr Scalar &operator +=(Scalar const &sc);
+
+		constexpr Scalar &operator -=(Scalar const &sc);
+
+		constexpr Scalar &operator *=(sReal sc);
+		constexpr Scalar &operator *=(Scalar const &sc);
+
+		constexpr Scalar &operator /=(sReal sc);
+		constexpr Scalar &operator /=(Scalar const &sc);
 	};
 }
 

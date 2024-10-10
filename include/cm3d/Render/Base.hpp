@@ -1,71 +1,102 @@
 #ifndef CM3D_RENDER_BASE_HPP
 #define CM3D_RENDER_BASE_HPP
 
-// @todo: support several windows
-
-#include <cm3d/Render/WinConfig.hpp>
 #include <cm3d/Core/Object.hpp>
-#include <cm3d/Types/UniqueStorage.hpp>
+#include <cm3d/Core/World.hpp>
+#include <cm3d/Core/FPCamera.hpp>
 
+#define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 
-namespace cm3d
+#include <glm/gtc/type_ptr.hpp>
+
+#include <functional>
+#include <stdexcept>
+#include <string>
+
+namespace cm3d::Render
 {
-	namespace Render
+	class Base
 	{
-		class Base
-		{
-		protected:
-			WinConfig *mConf = nullptr;
-			GLFWwindow *mWindow = nullptr;
-			
-			// Each object has corresponding set of graphics modules instances,
-			// which can be accessed via object ID
-			std::map<const UniqueStorage<Object> *,
-				UniqueStorage<DynArray<cm3d::Modules::Base>>> mData;
-			
-			typedef struct {
-				const UniqueStorage<Object> *st;
-				uint32_t id;
-			} objLocationType;
-			
-		public:
-			enum class Event
-			{
-				Init, // create window & load graphics API
-				Shutdown, // unload graphics API
-				Display,
-				
-				// DisplayAsync
-				// DisplayJoin
-				// DisplayFlush
-			};
-			enum class ObjEvent
-			{
-				Init,
-				Reload,
-				Unload,
-				Update,
-				Show,
-				Hide
-			};
-			
-			inline Base() = default;
-			inline Base(WinConfig *conf): mConf(conf) {}
-			
-			inline void configure(WinConfig *conf) {
-				mConf = conf;
-			}
-			inline GLFWwindow *getWindow() {
-				return mWindow;
-			}
-			
-			virtual int pushEvent(Event ev);
-			virtual int pushObjEvent(objLocationType tp, ObjEvent ev);
-			
-			virtual void framebufferSizeCallback(int width, int height);
+	public:
+		std::function<void(int, const char *)> onErrorIgnore = [](int retcode, const char *method) {
+			throw std::runtime_error(std::string("Renderer error: ") + method + " - " + std::to_string(retcode));
 		};
-	}
+
+	protected:
+		GLFWwindow *mWindow = nullptr;
+		World *mWorld = nullptr;
+
+		// Initialize graphics API if needed
+		virtual int fnInit() { return 0; }
+		virtual int fnShutdown() { return 0; }
+
+		// Draw one image into mWindow
+		virtual int fnDisplay(glm::mat4 const &, Vector3 const *) { return 0; }
+
+		// Load data for nothing more but rendering, from modules like RenderSurface
+		virtual int fnLoad(World const &, std::size_t) { return 0; }
+		virtual int fnUnload(std::size_t) { return 0; }
+
+	public:
+		constexpr inline GLFWwindow *getWindow() {
+			return mWindow;
+		}
+		virtual void bindWindow(GLFWwindow *wnd) {
+			mWindow = wnd;
+		}
+		virtual void bindWorld(World &w) {
+			mWorld = &w;
+		}
+
+		// send some glfwWindowHint's
+		virtual void preconfigure() {}
+
+		virtual void syncFramebuffer(int width, int height) {}
+
+		void initialize(int *result = nullptr) {
+			int res = fnInit();
+			if (result)
+				*result = res;
+			else if (res != 0)
+				onErrorIgnore(res, "initialize");
+		}
+		void shutdown(int *result = nullptr) {
+			int res = fnShutdown();
+			if (result)
+				*result = res;
+			else if (res != 0)
+				onErrorIgnore(res, "shutdown");
+		}
+		void display(glm::mat4 const &view, Vector3 const *position = nullptr, int *result = nullptr) {
+			int res = fnDisplay(view, position);
+			if (result)
+				*result = res;
+			else if (res != 0)
+				onErrorIgnore(res, "display");
+		}
+
+		void loadObject(World const &world, std::size_t id, int *result = nullptr) {
+			int res = fnLoad(world, id);
+			if (result)
+				*result = res;
+			else if (res != 0)
+				onErrorIgnore(res, "loadObject");
+		}
+		void unloadObject(std::size_t id, int *result = nullptr) {
+			int res = fnUnload(id);
+			if (result)
+				*result = res;
+			else if (res != 0)
+				onErrorIgnore(res, "unloadObject");
+		}
+
+		virtual ~Base() = default;
+	};
 }
+
+// for reference
+// @see ./Fiercewild/Fiercewild.hpp
+// @see ./Fiercewild/Fiercewild.cpp
 
 #endif

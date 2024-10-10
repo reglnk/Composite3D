@@ -6,7 +6,7 @@
  * (unlike string from STL) and useful in low-level operations
 **/
 
-#include <cm3d/Types/DynArrayIterators.hpp>
+#include <cm3d/Tl/DynArray.hpp>
 
 #include <cm3d/Core/Malloc.hpp>
 
@@ -17,192 +17,114 @@
 
 #include <utility>
 
-// @todo avoid UB in new standard
-
 namespace cm3d
 {
-	class String
+	class String: public DynArray<char>
 	{
-	protected:
-		char *buf;
-		size_t len;
-		
 	public:
-		typedef dynArrForwardIterator<char> Iterator;
-		typedef dynArrReverseIterator<char> rIterator;
-		typedef dynArrForwardIterator<const char> cIterator;
-		typedef dynArrReverseIterator<const char> crIterator;
-
-		using valueType = char;
+		inline String() = default;
 		
-		inline String() noexcept: buf(nullptr), len(0) {}
-		inline String(const String &s): buf(nullptr), len(s.len)
-		{
-			if (len) {
-				buf = (char *)mAlloc(len + 1);
-				strcpy(buf, s.buf);
-			}
+		inline String(const size_t slen): DynArray<char>(slen + 1) {
+			this->arr[slen] = '\0';
 		}
-		inline String(String &&s): buf(s.buf), len(s.len) {
-			s.buf = nullptr;
-		}
-		inline String(const char *s)
-		{
-			len = strlen(s);
-			buf = (char *)mAlloc(len + 1);
-			strcpy(buf, s);
+		
+		inline String(const char *s) {
+			size_t slen = std::strlen(s);
+			resize(slen);
+			std::memcpy(this->arr, s, slen);
 		}
 		inline String(char *s):
 			String((const char *)s) {}
 
-		inline String(const char *s, const size_t slen): buf(nullptr), len(slen)
+		inline String(const char *s, const size_t slen): String(slen)
 		{
-			buf = (char *)mAlloc(len + 1);
-			memcpy(buf, s, slen);
-			buf[len] = '\0';
-		}
-		inline String(const size_t slen): len(slen) {
-			buf = (char *)mAlloc(len + 1);
+			std::memcpy(this->arr, s, slen);
+			this->arr[slen] = '\0';
 		}
 		inline String(char *s, const size_t slen):
 			String((const char *)s, slen) {}
-
-		inline ~String() noexcept {
-			if (buf)
-				free(buf);
-		}
-/* ==================================================================== */
-
-		inline String &operator =(const char *s)
-		{
-			len = strlen(s);
-			buf = (char *)mRealloc(buf, len + 1);
-			strcpy(buf, s);
-			return *this;
-		}
-		inline String &operator =(const String &s)
-		{
-			len = s.len;
-			if (buf)
-				free(buf);
-			buf = nullptr;
-			if (len) {
-				buf = (char *)mAlloc(len + 1);
-				strcpy(buf, s.buf);
-			}
-			return *this;
-		}
-		inline String &operator =(String &&s) noexcept
-		{
-			len = s.len;
-			buf = s.buf;
-			s.buf = nullptr;
-			return *this;
-		}
-		inline operator bool() const noexcept {
-			return buf != nullptr;
-		}
-/* ==================================================================== */
-
-		CM3D_CXX14_CONSTEXPR_INLINE const size_t &length() const {
-			return len;
-		}
-		CM3D_CXX14_CONSTEXPR_INLINE size_t &length() {
-			return len;
+		
+		constexpr inline bool ready() const noexcept {
+			return this->len;
 		}
 
-		CM3D_CXX14_CONSTEXPR_INLINE size_t size() const {
-			return len;
+		constexpr inline size_t length() const {
+			return ready() ? this->len - 1 : 0;
 		}
-		CM3D_CXX14_CONSTEXPR_INLINE void clear() {
-			len = 0;
-			if (buf) {
-				free(buf);
-				buf = nullptr;
-			}
+		
+		constexpr inline size_t size() const = delete;
+		
+		constexpr inline const char *c_str() const {
+			return ready() ? this->data() : "";
 		}
-		CM3D_CXX14_CONSTEXPR_INLINE void finalize() {
-			len = 0;
-			if (buf) {
-				free(buf);
-				buf = nullptr;
-			}
+		
+		constexpr inline operator bool() const noexcept {
+			return length();
 		}
-		CM3D_CXX14_CONSTEXPR_INLINE const char *c_str() const {
-			return buf;
+		
+		inline void resize(const size_t newlen) {
+			DynArray<char>::resize(newlen + 1);
+			this->data()[newlen] = '\0';
 		}
-		CM3D_CXX14_CONSTEXPR_INLINE const char *data() const {
-			return buf;
+		
+		inline void reserve(const size_t cap) {
+			DynArray<char>::reserve(cap + 1);
 		}
-		CM3D_CXX14_CONSTEXPR_INLINE char *data() {
-			return buf;
+		
+		constexpr inline Iterator end() { return Iterator(arr + len - 1); }
+		constexpr inline cIterator end() const { return cIterator(arr + len - 1); }
+		constexpr inline cIterator cEnd() const { return end(); }
+
+		constexpr inline rIterator rBegin() { return rIterator(arr + len - 2); }
+		constexpr inline crIterator crBegin() const { return crIterator(arr + len - 2); }
+		
+		constexpr inline char &back() = delete;
+		constexpr inline char &front() = delete;
+		
+		constexpr inline char back() const {
+			if (!ready())
+				return '\0';
+			return this->arr[length() - 1];
+		}
+		constexpr inline char front() const {
+			if (!ready())
+				return '\0';
+			return this->arr[0];
 		}
 
-		CM3D_CXX14_CONSTEXPR_INLINE const char &front() const {
-			return *buf;
+		inline char *find(const char Ch) noexcept {
+			return std::strchr(this->data(), Ch);
 		}
-		CM3D_CXX14_CONSTEXPR_INLINE const char &back() const {
-			return buf[len - 1];
+		inline const char *find(const char Ch) const noexcept {
+			return std::strchr(this->data(), Ch);
 		}
-		CM3D_CXX14_CONSTEXPR_INLINE char &front() {
-			return *buf;
-		}
-		CM3D_CXX14_CONSTEXPR_INLINE char &back() {
-			return buf[len - 1];
-		}
-
-		CM3D_CXX14_CONSTEXPR_INLINE char &operator [](const size_t pos) {
-			return buf[pos];
-		}
-		CM3D_CXX14_CONSTEXPR_INLINE const char &operator [](const size_t pos) const {
-			return buf[pos];
-		}
-
-		CM3D_CXX14_CONSTEXPR_INLINE Iterator begin() { return Iterator(buf); }
-		CM3D_CXX14_CONSTEXPR_INLINE Iterator end() { return Iterator(buf + len); }
-		CM3D_CXX14_CONSTEXPR_INLINE cIterator begin() const { return cIterator(buf); }
-		CM3D_CXX14_CONSTEXPR_INLINE cIterator end() const { return cIterator(buf + len); }
-
-		CM3D_CXX14_CONSTEXPR_INLINE cIterator cBegin() const { return cIterator(buf); }
-		CM3D_CXX14_CONSTEXPR_INLINE cIterator cEnd() const { return cIterator(buf + len); }
-
-		CM3D_CXX14_CONSTEXPR_INLINE rIterator rBegin() { return rIterator(buf + len - 1); }
-		CM3D_CXX14_CONSTEXPR_INLINE rIterator rEnd() { return rIterator(buf - 1); }
-		CM3D_CXX14_CONSTEXPR_INLINE crIterator crBegin() const { return crIterator(buf + len - 1); }
-		CM3D_CXX14_CONSTEXPR_INLINE crIterator crEnd() const { return crIterator(buf - 1); }
-
-		inline char *find(const char Ch) const noexcept {
-			return strchr(buf, Ch);
-		}
+		
 		inline const char *find(const char *s) const noexcept {
-			return strstr(buf, s);
+			return std::strstr(this->data(), s);
 		}
 		inline const char *find(const String &s) const noexcept {
-			return strstr(buf, s.c_str());
+			return std::strstr(this->data(), s.c_str());
 		}
-		inline void resize(const size_t newSize) {
-			buf = (char *)mRealloc(buf, newSize + 1);
-			len = newSize;
-		}
+		
 /* =============================================================== */
 
 		inline bool operator ==(const char *s) const noexcept {
-			return !strncmp(buf, s, len) && !s[len];
+			return !std::strncmp(c_str(), s, length()) && !s[length()];
 		}
 		inline bool operator ==(char *s) const noexcept {
 			return this->operator ==((const char *)s);
 		}
 		inline bool operator !=(const char *s) const noexcept {
-			return strncmp(buf, s, len) || s[len];
+			return std::strncmp(c_str(), s, length()) || s[length()];
 		}
 		inline bool operator !=(char *s) const noexcept {
 			return this->operator !=((const char *)s);
 		}
 		inline bool operator ==(const String &s) const noexcept {
-			return len == s.size() && !strncmp(buf, s.c_str(), len);
+			return length() == s.length() && !std::strncmp(c_str(), s.c_str(), length());
 		}
 		inline bool operator !=(const String &s) const noexcept {
-			return len != s.size() || strncmp(buf, s.c_str(), len);
+			return length() != s.length() || std::strncmp(c_str(), s.c_str(), length());
 		}
 		
 #	ifndef CM3D_BASIC_STRING_DISABLE_STL_COMPAT
@@ -222,42 +144,35 @@ namespace cm3d
 		inline String &operator +=(const char *s)
 		{
 			const size_t slen = strlen(s);
-			buf = (char *)mRealloc(buf, len + slen + 1);
-			memcpy(buf + len, s, slen);
-			len += slen;
-			buf[len] = '\0';
+			const size_t prevlen = length();
+			resize(prevlen + slen);
+			std::memcpy(data() + prevlen, s, slen);
 			return *this;
 		}
 		inline String &operator +=(const String &s)
 		{
-			const size_t slen = s.size();
-			buf = (char *)mRealloc(buf, len + slen + 1);
-			memcpy(buf + len, s.c_str(), slen);
-			len += slen;
-			buf[len] = '\0';
+			const size_t slen = s.length();
+			const size_t prevlen = length();
+			resize(prevlen + slen);
+			std::memcpy(data() + prevlen, s.c_str(), slen);
 			return *this;
 		}
 	
-		inline String concat(
-			const char *s, const size_t slen
-		) const noexcept {
-			String ns;
-			ns.len = len + slen;
-			ns.buf = (char *)mAlloc(ns.len + 1);
-
-			memcpy(ns.buf, buf, len);
-			memcpy(ns.buf + len, s, slen + 1);
-
+		inline String concat(const char *s, const size_t slen) const
+		{
+			String ns(length() + slen);
+			std::memcpy(ns.data(), data(), length());
+			std::memcpy(ns.data() + length(), s, slen);
 			return ns;
 		}
-		inline String operator +(const char *s) const noexcept {
+		inline String operator +(const char *s) const {
 			return concat(s, strlen(s));
 		}
-		inline String operator +(char *s) const noexcept {
+		inline String operator +(char *s) const {
 			return concat(s, strlen(s));
 		}
-		inline String operator +(const String &s) const noexcept {
-			return concat(s.c_str(), s.size());
+		inline String operator +(const String &s) const {
+			return concat(s.c_str(), s.length());
 		}
 
 		friend inline bool operator ==(const char *cs, const String &s) noexcept {
@@ -271,7 +186,7 @@ namespace cm3d
 	{
 		inline uint32_t u32(const String &s) noexcept
 		{
-			return cm3d::Hash::u32(s.c_str(), s.size());
+			return cm3d::Hash::u32(s.c_str(), s.length());
 		}
 	}
 }

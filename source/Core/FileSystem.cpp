@@ -42,18 +42,18 @@ namespace cm3d
 	{
 		sPath concat(const sPath &p, const sPath &r, char sep)
 		{
-			if (p.back() == sep)
+			if (p.length() && p.back() == sep)
 				return p + r;
 			
-			sPath ncat(p.size() + r.size() + 2);
-			memcpy(ncat.data(), p.data(), p.size());
-			ncat[p.size()] = sep;
-			strcpy(ncat.data() + p.size() + 1, r.data());
+			sPath ncat(p.length() + r.length() + 1);
+			memcpy(ncat.data(), p.data(), p.length());
+			ncat[p.length()] = sep;
+			memcpy(ncat.data() + p.length() + 1, r.data(), r.length());
 			
 			return ncat;
 		}
 
-		void parentDir(sPath *p, bool allowRealloc)
+		void parentDir(sPath *p)
 		{
 			auto iter = p->rBegin();
 
@@ -61,8 +61,10 @@ namespace cm3d
 				return;
 
 			bool endsWithSlash = false;
-			if (*iter == '/' || *iter == '\\')
-				++iter, endsWithSlash = true;
+			if (*iter == '/' || *iter == '\\') {
+				++iter;
+				endsWithSlash = true;
+			}
 			
 			if (iter == p->rEnd()) {
 				if (!endsWithSlash && isPathSymbol((*p)[0]))
@@ -82,64 +84,45 @@ namespace cm3d
 				(pS == 0 && prevSlash[0] == '.') ||
 				(pS == 1 && prevSlash[0] == '.' && prevSlash[-1] == '.')
 			) {
-				const char *part = endsWithSlash ? "../" : "/../";
-				if (allowRealloc)
-					*p += part;
-				else {
-					strcpy(p->end(), part);
-					p->length() += 3 + !endsWithSlash;
-				}
+				*p += endsWithSlash ? "../" : "/../";
 				return;
 			}
 			
 			while (++iter != p->rEnd()) {
 				if (*iter == '/' || *iter == '\\') {
-					iter[-1] = '\0';
-					p->length() = p->rEnd() - iter;
+					p->resize(p->rEnd() - iter);
 					return;
 				}
 			}
 			
 			// Avoid replacing such paths like "C:" with "."
-			for (auto it = p->begin(); it < p->end() - endsWithSlash; ++it)
+			for (auto it = p->begin(); it < p->end() - static_cast<size_t>(endsWithSlash); ++it)
 				if (!isPathSymbol(*it))
 					return;
 			
-			if (allowRealloc)
-				*p = "./";
-			else {
-				strcpy(p->data(), "./");
-				p->length() = 2;
-			}
+			*p = "./";
 		};
-
-		bool isPathSymbol(char Ch)
+		
+		bool isAbsolute(const sPath &path)
 		{
-			switch(Ch)
-			{
-				case '<':
-				case '>':
-				case '?':
-				case '*':
-				case '|':
-				case ':':
-				case ';':
-				case '\"':
-				// case '\r':
-				// case '\n':
-				// case '\t':
-				// case '\v':
-				// case '\f':
-				case '\0':
-					return false;
-				default:
-					return true;
-			}
+			if (!path.length())
+				return false;
+			
+			bool isunix = isUnixLike(path);
+			bool iswin = isWindowsLike(path);
+			
+			if (!isunix && !iswin)
+				return false;
+			
+			if (isunix)
+				return path[0] == '/';
+			
+			return path[0] == '\\' || (path.length() && path[1] == ':');
 		}
 
 		bool isNormalized(const sPath &path)
 		{
-			if (!path.size())
+			if (!path.length())
 				return false;
 
 			sPath::cIterator nameIter;
@@ -158,7 +141,7 @@ namespace cm3d
 				if (isPathSymbol(*nameIter) && *nameIter != '/' && *nameIter != '\\')
 				{
 					for (auto iter = nameIter; iter != path.end(); ++iter)
-						if ((iter[-1] == '/' || iter[-1] == '\\') &&
+						if (iter != path.begin() && (iter[-1] == '/' || iter[-1] == '\\') &&
 							(isCurrentPointer(iter) || isParentPointer(iter))
 						) return false;
 					return true;
@@ -170,12 +153,15 @@ namespace cm3d
 		sPath normalize(const sPath &path)
 		{
 			if (
-				(expectRange(path.size(), 1, 2) && isCurrentPointer(path.c_str())) ||
-				(expectRange(path.size(), 2, 3) && isParentPointer(path.c_str()))
+				(expectRange(path.length(), 1, 2) && isCurrentPointer(path.c_str())) ||
+				(expectRange(path.length(), 2, 3) && isParentPointer(path.c_str()))
 			) return sPath(path);
+			
+			// @todo remake for new string
 
-			sPath newp(path.size() + 1);
-			newp.length() = 0;
+			sPath newp;
+			newp.reserve(path.length() + 1);
+			
 			auto destIter = newp.begin();
 			auto srcIter = path.begin();
 
@@ -184,10 +170,10 @@ namespace cm3d
 				if (iter == path.end() || isSlash(*iter))
 				{
 					const size_t copySize = iter + 1 - srcIter;
+					newp.resize(newp.length() + copySize);
 					memcpy(destIter, srcIter, copySize);
+					destIter = newp.end();
 					srcIter = iter + 1;
-					destIter += copySize;
-					newp.length() = destIter - newp.begin();
 				}
 				else if (iter == path.begin() || isSlash(iter[-1]))
 				{
@@ -198,13 +184,12 @@ namespace cm3d
 					}
 					else if (sizeLeft >= 2 && isParentPointer(iter))
 					{
-						parentDir(&newp, false);
+						parentDir(&newp);
 						destIter = newp.end();
-						
 						srcIter = (iter += 1 + (iter[2] != '\0')) + 1;
 					}
 				}
-
+				
 				if (iter == path.end())
 					break;
 			}
@@ -229,7 +214,7 @@ namespace cm3d
 					el = '/';
 			
 			// 2. Convert "X:/" to "/x/"
-			if (path->size() >= 2 && (*path)[1] == ':') {
+			if (path->length() >= 2 && (*path)[1] == ':') {
 				char &Ch = (*path)[0];
 				if (Ch >= 'A' && Ch <= 'Z')
 					Ch += 'a' - 'A';
@@ -243,13 +228,14 @@ namespace cm3d
 
 		bool isWindowsLike(const sPath &path)
 		{
-			for (size_t i = 0; i < path.size(); ++i)
+			for (size_t i = 0; i < path.length(); ++i)
 			{
 				char Ch = path[i];
 				if (Ch == '/')
 					return false;
 				
-				if (!isPathSymbol(Ch) & ~(Ch == ':'))
+				// colon is allowed, but only at path[1]
+				if (!isPathSymbol(Ch) && (Ch != ':' || i == 1))
 					return false;
 			}
 			return true;
@@ -263,7 +249,7 @@ namespace cm3d
 					el = '\\';
 			
 			// 2. Convert "\\x\\" to "X:\\"
-			if (path->size() >= 2 && (*path)[0] == '\\') {
+			if (path->length() >= 2 && (*path)[0] == '\\') {
 				char &Ch = (*path)[1];
 				if (Ch >= 'a' && Ch <= 'z')
 					Ch += 'A' - 'a';
@@ -273,7 +259,7 @@ namespace cm3d
 				(*path)[0] = Ch;
 				(*path)[1] = ':';
 
-				if (path->size() == 2)
+				if (path->length() == 2)
 					*path += "\\";
 			}
 			return 0;
@@ -292,7 +278,7 @@ namespace cm3d
 			return 0;
 		}
 
-		int readFile(const char *path, sByte *buffer, sSize readSize, const char *modes, sSize begPosition)
+		int readFile(const char *path, void *buffer, size_t rSize, const char *modes, sSize begPosition)
 		{
 			FILE *rs = std::fopen(path, modes);
 			if (!rs)
@@ -303,10 +289,22 @@ namespace cm3d
 				return -1;
 			}
 
-			sSize r_objects = std::fread(buffer, 1, readSize, rs);
+			sSize r_objects = std::fread(buffer, 1, rSize, rs);
 			std::fclose(rs);
 
-			return !(r_objects == readSize);
+			return !(r_objects == rSize);
+		}
+		
+		int writeFile(const char *path, void const *buffer, size_t wSize, const char *modes)
+		{
+			FILE *wr = std::fopen(path, modes);
+			if (!wr)
+				return -1;
+
+			sSize w_objects = std::fwrite(buffer, 1, wSize, wr);
+			std::fclose(wr);
+
+			return w_objects == wSize;
 		}
 
 		// @todo
@@ -317,7 +315,7 @@ namespace cm3d
 		int checkNode(const sPath &path, NodeState *nS, uint32_t rawAttrib)
 		{
 			using namespace Attribute;
-			CM3D_ASSERT(path.size());
+			CM3D_ASSERT(path.length());
 
 #		ifndef _WIN32
 			struct stat st;
@@ -481,9 +479,8 @@ namespace cm3d
 			using namespace FileSystemWin;
 
 			sPath pathAst = ensureAsterisk(path);
-			toWindowsLike(&pathAst);
 			sPath dirPath = pathAst;
-			dirPath[--dirPath.length()] = '\0';
+			dirPath.resize(dirPath.length() - 1);
 
 			WIN32_FIND_DATAA fData;
 			HANDLE hFile = FindFirstFileA(pathAst.c_str(), &fData);
@@ -543,8 +540,6 @@ namespace cm3d
 		{
 			HANDLE hImpToken = NULL;
 			WINBOOL bRetCode;
-			DWORD dwRetCode = 0;
-			DWORD dwBufSize = 0;
 			*pdwAccessMode = 0;
 			
 			bRetCode = DuplicateToken(hToken, SecurityImpersonation, &hImpToken);
@@ -612,7 +607,7 @@ namespace cm3d
 		FileSystem::sPath ensureAsterisk(const FileSystem::sPath &path)
 		{
 			String newp;
-			if (!path.size())
+			if (!path.length())
 				newp = "*";
 			else if (path.back() == '\\' || path.back() == '/')
 				newp = path + "*";

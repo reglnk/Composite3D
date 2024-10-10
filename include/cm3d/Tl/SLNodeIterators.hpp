@@ -1,134 +1,134 @@
 #ifndef CM3D_SL_NODE_ITERATORS_HPP
 #define CM3D_SL_NODE_ITERATORS_HPP
 
-#include <cm3d/Types/SLNode.hpp>
+#include <cm3d/Tl/SLNode.hpp>
 #include <cm3d/Utility/Std.hpp>
 #include <cm3d/Utility/Debug.hpp>
 
 
 namespace cm3d
 {
-	template<typename T>
+	template<typename NodeType>
 	class slNodeIteratorBase
 	{
 	protected:
-		SLNode<T> *m_data;
+		NodeType *m_data;
+		
 	public:
-		using valueType = T;
+		using nodeType = NodeType;
+		using valueType = typename nodeType::valueType;
 		
-		inline slNodeIteratorBase() noexcept = default;
-		inline slNodeIteratorBase(const slNodeIteratorBase<T> &it) noexcept = default;
-		inline slNodeIteratorBase(slNodeIteratorBase<T> &&rv) noexcept = default;
+		inline slNodeIteratorBase(const slNodeIteratorBase<NodeType> &it) noexcept = default;
+		inline slNodeIteratorBase(slNodeIteratorBase<NodeType> &&rv) noexcept = default;
 		
-		inline slNodeIteratorBase(SLNode<T> *data) noexcept: m_data(data) {}
+		inline slNodeIteratorBase(NodeType *data) noexcept: m_data(data) {}
 
-		CM3D_CXX14_CONSTEXPR_INLINE slNodeIteratorBase<T> operator =(const slNodeIteratorBase<T> &it) {
+		constexpr inline slNodeIteratorBase<NodeType> operator =(const slNodeIteratorBase<NodeType> &it) {
 			this->m_data = it.m_data;
 			return *this;
 		}
-		CM3D_CXX14_CONSTEXPR_INLINE slNodeIteratorBase<T> operator =(slNodeIteratorBase<T> &&rv) {
+		constexpr inline slNodeIteratorBase<NodeType> operator =(slNodeIteratorBase<NodeType> &&rv) {
 			this->m_data = rv.m_data;
 			return *this;
 		}
-		CM3D_CXX14_CONSTEXPR_INLINE slNodeIteratorBase<T> operator =(SLNode<T> *data) {
+		constexpr inline slNodeIteratorBase<NodeType> operator =(SLNode<NodeType> *data) {
 			this->m_data = data;
 			return *this;
 		}
-		CM3D_CXX14_CONSTEXPR_INLINE SLNode<T> *data() {
+		constexpr inline NodeType *data() {
 			return m_data;
 		}
-		CM3D_CXX14_CONSTEXPR_INLINE const SLNode<T> *data() const {
+		constexpr inline const NodeType *data() const {
 			return m_data;
 		}
-		CM3D_CXX14_CONSTEXPR_INLINE operator SLNode<T> *() {
+		constexpr inline operator NodeType *() {
 			return m_data;
 		}
-		CM3D_CXX14_CONSTEXPR_INLINE operator const SLNode<T> *() const {
+		constexpr inline operator const NodeType *() const {
 			return m_data;
 		}
-		CM3D_CXX14_CONSTEXPR_INLINE T &operator *() {
+		constexpr inline valueType &operator *() {
 			return m_data->data;
 		}
-		CM3D_CXX14_CONSTEXPR_INLINE const T &operator *() const {
+		constexpr inline const valueType &operator *() const {
 			return m_data->data;
 		}
-		CM3D_CXX14_CONSTEXPR_INLINE T *operator ->() {
+		constexpr inline valueType *operator ->() {
 			return &m_data->data;
 		}
-		CM3D_CXX14_CONSTEXPR_INLINE const T *operator ->() const {
+		constexpr inline const valueType *operator ->() const {
 			return &m_data->data;
 		}
-		CM3D_CXX14_CONSTEXPR_INLINE bool operator ==(
-			const slNodeIteratorBase<T> other
-		) const {
+		constexpr inline bool operator ==(const slNodeIteratorBase<NodeType> other) const {
 			return m_data == other.m_data;
 		}
-		CM3D_CXX14_CONSTEXPR_INLINE bool operator !=(
-			const slNodeIteratorBase<T> other
-		) const {
+		constexpr inline bool operator !=(const slNodeIteratorBase<NodeType> other) const {
 			return m_data != other.m_data;
 		}
 	};
 	
-	template<typename T>
-	class slNodeIterator: public slNodeIteratorBase<T>
+	template<typename NodeType>
+	class slNodeFwdIteratorBase: public slNodeIteratorBase<NodeType>
 	{
 	public:
-		inline slNodeIterator() noexcept = default;
-		inline slNodeIterator(const slNodeIterator<T> &it) noexcept = default;
-		inline slNodeIterator(slNodeIterator<T> &&rv) = default;
+		using nodeType = NodeType;
+		using valueType = typename NodeType::valueType;
 		
-		CM3D_CXX14_CONSTEXPR_INLINE slNodeIterator(SLNode<T> *data) noexcept:
-			slNodeIteratorBase<T>(data) {}
+		inline slNodeFwdIteratorBase() noexcept = default;
+		inline slNodeFwdIteratorBase(const slNodeFwdIteratorBase<NodeType> &it) noexcept = default;
+		inline slNodeFwdIteratorBase(slNodeFwdIteratorBase<NodeType> &&rv) = default;
 		
-		CM3D_CXX14_CONSTEXPR_INLINE slNodeIterator<T> operator =(const slNodeIterator<T> &it) {
+		constexpr inline slNodeFwdIteratorBase(NodeType *data) noexcept:
+			slNodeIteratorBase<NodeType>(data) {}
+		
+		constexpr inline slNodeFwdIteratorBase<NodeType> operator =(const slNodeFwdIteratorBase<NodeType> &it) {
 			this->m_data = it.m_data;
 			return *this;
 		}
-		CM3D_CXX14_CONSTEXPR_INLINE slNodeIterator<T> operator =(slNodeIterator<T> &&rv) {
+		constexpr inline slNodeFwdIteratorBase<NodeType> operator =(slNodeFwdIteratorBase<NodeType> &&rv) {
 			this->m_data = rv.m_data;
 			return *this;
 		}
-		CM3D_CXX14_CONSTEXPR_INLINE slNodeIterator<T> &operator ++() {
+		constexpr inline slNodeFwdIteratorBase<NodeType> &operator ++() {
 			this->m_data = this->m_data->next;
 			return *this;
 		}
-		CM3D_CXX14_CONSTEXPR_INLINE slNodeIterator<T> operator ++(int) {
-			slNodeIterator<T> th = *this;
+		constexpr inline slNodeFwdIteratorBase<NodeType> operator ++(int) {
+			slNodeFwdIteratorBase<NodeType> th = *this;
 			this->m_data = this->m_data->next;
 			return th;
 		}
 		template<typename intType>
-		CM3D_CXX14_CONSTEXPR_INLINE slNodeIterator<T> operator +(intType i) {
+		constexpr inline slNodeFwdIteratorBase<NodeType> operator +(intType i) {
 			CM3D_ASSERT(i >= 0);
 			auto dat1 = this->m_data;
 			while (i--)
 				dat1 = dat1->next;
-			return slNodeIterator(dat1);
+			return slNodeFwdIteratorBase(dat1);
 		}
 		template<typename intType>
-		CM3D_CXX14_CONSTEXPR_INLINE slNodeIterator<T> operator -(intType i) {
+		constexpr inline slNodeFwdIteratorBase<NodeType> operator -(intType i) {
 			CM3D_ASSERT(i <= 0);
 			auto dat1 = this->m_data;
 			while (i++)
 				dat1 = dat1->next;
-			return slNodeIterator(dat1);
+			return slNodeFwdIteratorBase(dat1);
 		}
 		template<typename intType>
-		CM3D_CXX14_CONSTEXPR_INLINE slNodeIterator<T> &operator +=(intType i) {
+		constexpr inline slNodeFwdIteratorBase<NodeType> &operator +=(intType i) {
 			CM3D_ASSERT(i >= 0);
 			while (i--)
 				this->m_data = this->m_data->next;
 			return *this;
 		}
 		template<typename intType>
-		CM3D_CXX14_CONSTEXPR_INLINE slNodeIterator<T> &operator -=(intType i) {
+		constexpr inline slNodeFwdIteratorBase<NodeType> &operator -=(intType i) {
 			CM3D_ASSERT(i <= 0);
 			while (i++)
 				this->m_data = this->m_data->next;
 			return *this;
 		}
-		CM3D_CXX14_CONSTEXPR_INLINE bool operator >(const slNodeIterator<T> other) const {
+		constexpr inline bool operator >(const slNodeFwdIteratorBase<NodeType> other) const {
 			auto dat1 = other.m_data;
 			while ((dat1 = dat1->next))
 				if (dat1 == this->m_data)
@@ -136,10 +136,10 @@ namespace cm3d
 			
 			return false;
 		}
-		CM3D_CXX14_CONSTEXPR_INLINE bool operator >=(const slNodeIterator<T> other) const {
+		constexpr inline bool operator >=(const slNodeFwdIteratorBase<NodeType> other) const {
 			return this->m_data == other.m_data || *this > other;
 		}
-		CM3D_CXX14_CONSTEXPR_INLINE bool operator <(const slNodeIterator<T> other) const {
+		constexpr inline bool operator <(const slNodeFwdIteratorBase<NodeType> other) const {
 			auto dat1 = this->m_data;
 			while ((dat1 = dat1->next))
 				if (dat1 == other.m_data)
@@ -147,11 +147,39 @@ namespace cm3d
 			
 			return false;
 		}
-		CM3D_CXX14_CONSTEXPR_INLINE bool operator <=(const slNodeIterator<T> other) const {
+		constexpr inline bool operator <=(const slNodeFwdIteratorBase<NodeType> other) const {
 			return this->m_data == other.m_data || *this < other;
 		}
-		template<typename Ty>
-		friend class Queue;
+	};
+	
+	template<typename T>
+	class slNodeIterator: public slNodeFwdIteratorBase<SLNode<T>>
+	{
+	public:
+		using nodeType = SLNode<T>;
+		using valueType = T;
+		
+		inline slNodeIterator() noexcept = default;
+		inline slNodeIterator(const slNodeIterator<T> &it) noexcept = default;
+		inline slNodeIterator(slNodeIterator<T> &&rv) = default;
+		
+		constexpr inline slNodeIterator(nodeType *data) noexcept:
+			slNodeFwdIteratorBase<nodeType>(data) {}
+	};
+	
+	template<typename T>
+	class slNodeConstIterator: public slNodeFwdIteratorBase<const SLNode<T>>
+	{
+	public:
+		using nodeType = const SLNode<T>;
+		using valueType = T;
+		
+		inline slNodeConstIterator() noexcept = default;
+		inline slNodeConstIterator(const slNodeConstIterator<T> &it) noexcept = default;
+		inline slNodeConstIterator(slNodeConstIterator<T> &&rv) = default;
+		
+		constexpr inline slNodeConstIterator(nodeType *data) noexcept:
+			slNodeFwdIteratorBase<nodeType>(data) {}
 	};
 }
 

@@ -1,5 +1,6 @@
 #include <cm3d/Core/LogManager.hpp>
 #include <cm3d/Utility/MtBasic.hpp>
+#include <cm3d/Utility/Debug.hpp>
 
 #include <cstdio>
 #include <mutex>
@@ -19,7 +20,7 @@ namespace cm3d
 		fMtx.lock();
 		logFile = openStream(logPath.c_str(), mode);
 		
-		// If something will close the file before deriving the result, the current
+		// If something closes the file before deriving the result, the current
 		// logPath might be considered unavailable, though file was opened here.
 		bool p = logFile != NULL;
 		fMtx.unlock();
@@ -52,16 +53,16 @@ namespace cm3d
 			if (shouldExit) return;
 
 #		if CM3D_DEBUG
-			auto qSize1 = m->logData.size();
+			auto qLen1 = m->logData.length();
 #		endif
-			int res = m->logFunc(
+			int res = m->logFunc (
 				&m->logFile, m->logData, m->logPath,
 				m->fMtx, m->dMtx, m->pMtx
 			);
 			if (res)
 			{
 #			if CM3D_DEBUG
-				CM3D_ASSERT(qSize1 == m->logData.size());
+				CM3D_ASSERT(qLen1 == m->logData.length());
 #			endif
 				m->textSupply.put();
 			}

@@ -1,17 +1,19 @@
 #include <cm3d/Core/FPCamera.hpp>
 #include <cm3d/Core/Math.hpp>
-#include <cm3d/Types/Linear.hpp>
+#include <cm3d/Tl/Linear.hpp>
 
+#define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 
 #include <glm/geometric.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
 #include <cmath>
+#include <algorithm>
 
 namespace cm3d
 {
-	void FPCamera::applyVelDelta(const int direction, const sReal dTime)
+	void FPCamera::applyVelDelta(int direction, const sReal dTime)
 	{
 		using namespace glm;
 		using md = MovDirection;
@@ -37,8 +39,9 @@ namespace cm3d
 		else if (direction & md::relDown)
 			mov -= unitUp;
 		
-		if (mov != glm::vec3(0.f))
+		if (mov != glm::vec3(0.f)) {
 			wVel += crvec3(normalize(mov)) * (dTime * accFactor);
+		}
 	}
 
 	void FPCamera::offsetCallback(const double off_x, const double off_y)
@@ -55,7 +58,7 @@ namespace cm3d
 		{
 			crmat3 ryaw(glm::rotate(
 				crmat4(1.0),
-				static_cast<sReal>(off_x * offsetRsp),
+				static_cast<sReal>(-off_x * offsetRsp),
 				unitUpAbsolute
 			));
 			unitLeft = vec3(ryaw * unitLeft);
@@ -86,12 +89,13 @@ namespace cm3d
 		using namespace glm;
 		if (wVel != crvec3(0.0))
 		{
-			crvec3 vel = wVel;
-			wVel -= normalize(wVel) * (dmpFactor * dTime);
+			crvec3 vel = normalize(wVel);
+			wVel -= vel * std::min((dmpFactor * dTime), 0.997);
 			if (dot(vel, wVel) < (sReal)0.3)
 				wVel = crvec3(0.0);
 			
-			wPos += wVel * dTime;
+			auto vt = wVel * dTime;
+			wPos += vt;
 		}
 		update();
 	}

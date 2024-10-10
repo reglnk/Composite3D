@@ -5,24 +5,26 @@
  * A First Person Camera. World-up axis can be any 3D unit vector.
  */
 
-#include <cm3d/Types/Aliases.hpp>
-#include <cm3d/Types/Linear.hpp>
-#include <cm3d/Types/Vector3.hpp>
+#include <cm3d/Tl/Aliases.hpp>
+#include <cm3d/Tl/Linear.hpp>
+#include <cm3d/Tl/Vector3.hpp>
 
 #include <cm3d/Core/Math.hpp>
 
 // @todo
 // onReachUpperLimit, onReachLowerLimit -- angle limiting callbacks
+// @todo add constexpr
 
 namespace cm3d
 {
 	class FPCamera
 	{
 	public:
-		class MovDirection {
+		struct MovDirection
+		{
 			MovDirection() = delete;
 			~MovDirection() = delete;
-		public:
+
 			constexpr static int Forward  = 0x1;
 			constexpr static int Backward = 0x2;
 			constexpr static int Left     = 0x4;
@@ -32,6 +34,7 @@ namespace cm3d
 			constexpr static int absUp    = 0x40;
 			constexpr static int absDown  = 0x80;
 		};
+		
 		enum ViewMode {
 			Fixed = 0, // unitUpAbsolute isn't changed automatically
 			Free = 1, // may change by rotation
@@ -48,8 +51,6 @@ namespace cm3d
 		Vector3 wPos;
 		glm::crvec3 wVel;
 
-		inline FPCamera() = default;
-		
 		inline FPCamera
 		(
 			Vector3 wPos = Vector3(0.0),
@@ -64,10 +65,10 @@ namespace cm3d
 			Vector3 *pivot = NULL,
 			ViewMode mode = Free
 		):
+			FoV(FoV), frustumFar(frustumFar), offsetRsp(offsetResponse),
+			accFactor(accFactor), dmpFactor(dmpFactor),
 			wPos(wPos), wVel(wVel),
 			unitForward(forwardDir), unitUp(upDir), unitUpAbsolute(upDir),
-			FoV(FoV), frustumFar(frustumFar), 
-			accFactor(accFactor), dmpFactor(dmpFactor), offsetRsp(offsetResponse),
 			pivotPoint(pivot), vMode(mode)
 		{
 			// if initialized as free, then update just angle
@@ -78,19 +79,29 @@ namespace cm3d
 		
 		inline glm::mat4 viewMatrix(float aspect)
 		{
-			// @todo rework wPos behaviour so that the matrix precision won't be
-			// awful at very far point from world center
 			using namespace glm;
 			vec3 w_pos(wPos.x, wPos.y, wPos.z);
 			mat4 look_at = lookAt(w_pos, w_pos + vec3(unitForward), vec3(unitUp));
+			// @note: the precision is lost    ^ here (on big ratios of the w_pos)
+
 			return perspective(FoV, aspect, 0.1f, frustumFar) * look_at;
 		}
-		inline glm::dmat4 viewMatrix(sReal aspect)
+		inline glm::dmat4 viewMatrix(double aspect)
 		{
 			using namespace glm;
 			dvec3 w_pos(wPos.x, wPos.y, wPos.z);
 			dmat4 look_at = lookAt(w_pos, w_pos + dvec3(unitForward), dvec3(unitUp));
 			return perspective((double)FoV, (double)aspect, 0.1, (double)frustumFar) * look_at;
+		}
+
+		template<typename T>
+		inline glm::mat<4, 4, T> viewMatrixRelative(T aspect)
+		{
+			using namespace glm;
+			vec<3, T> w_pos(wPos.x, wPos.y, wPos.z);
+			mat<4, 4, T> look_at = lookAt(vec<3, T>(0.0), vec<3, T>(unitForward), vec<3, T>(unitUp));
+
+			return perspective(FoV, aspect, 0.1f, frustumFar) * look_at;
 		}
 		
 		void applyVelDelta(const int direction, const sReal dTime);
@@ -100,19 +111,19 @@ namespace cm3d
 		void processPhysics(const sReal dTime);
 		void update();
 
-		inline const sReal getVerticalAngle() const {
+		constexpr inline sReal getVerticalAngle() const {
 			return verticalAngle;
 		}
-		inline glm::crvec3 const &getUp() const {
+		constexpr inline glm::crvec3 const &getUp() const {
 			return unitUp;
 		}
-		inline glm::crvec3 const &getForward() const {
+		constexpr inline glm::crvec3 const &getForward() const {
 			return unitForward;
 		}
-		inline glm::crvec3 const &getLeft() const {
+		constexpr inline glm::crvec3 const &getLeft() const {
 			return unitLeft;
 		}
-		inline glm::crvec3 const &getUpAbsolute() const {
+		constexpr inline glm::crvec3 const &getUpAbsolute() const {
 			return unitUpAbsolute;
 		}
 
@@ -139,4 +150,4 @@ namespace cm3d
 	};
 } // namespace cm3d
 
-#endif // FIRST_PERSON_CAMERA_HPP
+#endif // CM3D_FIRST_PERSON_CAMERA_HPP

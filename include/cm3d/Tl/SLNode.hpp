@@ -10,6 +10,8 @@ namespace cm3d
 	template<typename T>
 	struct SLNode
 	{
+		using valueType = T;
+		
 		T data;
 		SLNode<T> *next;
 

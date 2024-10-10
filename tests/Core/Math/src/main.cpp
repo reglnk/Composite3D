@@ -14,12 +14,13 @@
 
 using namespace cm3d;
 
-constexpr uint64_t F64_SIG = 0x8000000000000000;
-constexpr uint64_t F64_EXP = 0x7FF0000000000000;
-constexpr uint64_t F64_MAN = 0x000FFFFFFFFFFFFF;
-constexpr uint64_t F32_SIG = 0x80000000;
-constexpr uint64_t F32_EXP = 0x7F800000;
-constexpr uint64_t F32_MAN = 0x007FFFFF;
+#define F64_SIG 0x8000000000000000
+#define F64_EXP 0x7FF0000000000000
+#define F64_MAN 0x000FFFFFFFFFFFFF
+
+#define F32_SIG 0x80000000
+#define F32_EXP 0x7F800000
+#define F32_MAN 0x007FFFFF
 
 std::mt19937 randGen;
 

@@ -3,8 +3,8 @@
 #include <random>
 #include <string>
 
-#include <cm3d/Types/String.hpp>
-#include <cm3d/Types/SLList.hpp>
+#include <cm3d/Tl/String.hpp>
+#include <cm3d/Tl/SLList.hpp>
 
 using namespace cm3d;
 
@@ -17,8 +17,9 @@ int main(int argc, char **argv)
 		std::cout << "> ";
 		std::cin >> tp;
 		if (tp == "print" || tp == "p") {
+			SLList<String> lstt(lst);
 			std::cout << "[";
-			for (auto &el: lst)
+			for (auto &el: lstt)
 				std::cout << el.c_str() << ", ";
 			std::cout << "]\n";
 		}

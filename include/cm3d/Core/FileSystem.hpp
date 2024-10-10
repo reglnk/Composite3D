@@ -1,9 +1,9 @@
 #ifndef CM3D_FILE_SYSTEM_HPP
 #define CM3D_FILE_SYSTEM_HPP
 
-#include <cm3d/Types/Aliases.hpp>
-#include <cm3d/Types/String.hpp>
-#include <cm3d/Types/DynArray.hpp>
+#include <cm3d/Tl/Aliases.hpp>
+#include <cm3d/Tl/String.hpp>
+#include <cm3d/Tl/DynArray.hpp>
 
 #ifdef _WIN32
 #  include <windows.h>
@@ -74,9 +74,39 @@ namespace cm3d
 		};
 		
 		sPath concat(const sPath &p, const sPath &r, char sep = '/');
-		void parentDir(sPath *path, bool allowRealloc = true);
+		
+		void parentDir(sPath *path);
+		inline sPath parentDir(sPath const &path) {
+			sPath p = path;
+			parentDir(&p);
+			return p;
+		}
 
-		bool isPathSymbol(char Ch);
+		constexpr inline bool isPathSymbol(char Ch)
+		{
+			switch(Ch)
+			{
+				case '<':
+				case '>':
+				case '?':
+				case '*':
+				case '|':
+				case ':':
+				case ';':
+				case '\"':
+				// case '\r':
+				// case '\n':
+				// case '\t':
+				// case '\v':
+				// case '\f':
+				case '\0':
+					return false;
+				default:
+					return true;
+			}
+		}
+		
+		bool isAbsolute(const sPath &path);
 
 		bool isNormalized(const sPath &path);
 		sPath normalize(const sPath &path);
@@ -97,14 +127,15 @@ namespace cm3d
 		}
 
 		int getFileSize(const char *path, sSize *size, const char *modes = "rb");
-		int readFile(const char *path, sByte *buffer, sSize readSize, const char *modes = "rb", sSize begPosition = 0); // fin
+		int readFile(const char *path, void *buffer, size_t readSize, const char *modes = "rb", sSize begPosition = 0);
+		int writeFile(const char *path, const void *buffer, size_t wSize, const char *modes = "wb");
 
 		// @todo
 		// int createNode(const sPath &path, const NodeType type, bool createDirs = false);
 
 		// File attributes are 4-byte on both linux and windows.
-		// If default provided, the function will check actual ones.
-		// If overridden, rawAttrib is just parsed.
+		// If rawAttrib has default value, the function will check actual ones.
+		// Otherwise, attributes of nS are set based on the value.
 		int checkNode(const sPath &path, NodeState *nS, uint32_t rawAttrib = 0U);
 		
 		int listDirectory(const sPath &path, DynArray<Entry> *entList);

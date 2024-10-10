@@ -3,21 +3,26 @@
 
 // The base module to be inherited by other Object modules
 
-#include <cstdint>
+#include <cm3d/IO/binStream.hpp>
 
-namespace cm3d
+#include <cstdint>
+#include <cstddef>
+
+namespace cm3d::Modules
 {
-	namespace Modules
+	class Base
 	{
-		class Base
-		{
-		protected:
-			uint32_t id;
-		public:
-			inline uint32_t getId() { return id; }
-			inline Base(uint32_t id): id(id) {}
-		};
-	}
+	public:
+		inline virtual uint32_t getId() const { return -1; }
+
+		inline virtual size_t binSize() const { return 0; }
+
+		inline virtual void binSerialize(io::binStreamW &s) const {}
+
+		inline virtual void binDeserialize(io::binStreamR &s) {}
+
+		inline virtual ~Base() {}
+	};
 }
 
 #endif

@@ -1,0 +1,1 @@
+write virtual interface for window cuz it can be inlined

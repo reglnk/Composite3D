@@ -8,6 +8,8 @@
 #  include <windows.h>
 #endif
 
+// @todo refactor
+
 namespace cm3d
 {
 	namespace System

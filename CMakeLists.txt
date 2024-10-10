@@ -1,9 +1,10 @@
 cmake_minimum_required(VERSION 3.17)
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_C_STANDARD 99)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-project(Composite3D VERSION 0.1.0 LANGUAGES CXX)
+project(Composite3D VERSION 0.1.0 LANGUAGES C CXX)
 
 set(CM3D_RUNTIME_OUTPUT_DIR "${CMAKE_BINARY_DIR}" CACHE PATH "Put binary in this folder")
 option(CM3D_BUILD_TESTS "" ON)
@@ -20,10 +21,12 @@ set(CM3D_INTERNAL_LUA_LIBS "lua" CACHE INTERNAL "")
 
 list(APPEND CM3D_INTERNAL_INCDIRS
 	"${CM3D_INTERNAL_ROOT}/include"
-	"${CM3D_INTERNAL_ROOT}/external/glm"
-	"${CM3D_INTERNAL_ROOT}/external/stb"
-	"${CM3D_INTERNAL_ROOT}/external/glad/include"
-	"${CM3D_INTERNAL_ROOT}/external/lua/src"
+	"${CM3D_EXTERNAL_ROOT}/glm"
+	"${CM3D_EXTERNAL_ROOT}/stb"
+	"${CM3D_EXTERNAL_ROOT}/glad/include"
+	"${CM3D_EXTERNAL_ROOT}/lua/src"
+	"${CM3D_EXTERNAL_ROOT}/bitsery/include"
+	"${CM3D_EXTERNAL_ROOT}/imgui"
 )
 
 # Assimp configuration ================
@@ -42,6 +45,7 @@ if (EXT_ASSIMP_INCLUDE_DIR AND
 		"${EXT_ASSIMP_BUILD_INCLUDE_DIR}"
 	)
 	set(CM3D_INTERNAL_ASSIMP_LIBS "${EXT_ASSIMP_LIBRARY_PATH}" CACHE INTERNAL "")
+	unset(assimp_DIR CACHE)
 else()
 	find_package(assimp REQUIRED)
 	message(STATUS "Found assimp package")
@@ -62,6 +66,7 @@ if (EXT_GLFW_INCLUDE_DIR AND
 		"${EXT_GLFW_INCLUDE_DIR}"
 	)
 	set(CM3D_INTERNAL_GLFW_LIBS "${EXT_GLFW_LIBRARY_PATH}" CACHE INTERNAL "")
+	unset(glfw3_DIR CACHE)
 else()
 	find_package(glfw3 3.3 REQUIRED)
 	message(STATUS "Found glfw3 package")
@@ -73,7 +78,6 @@ endif()
 
 add_subdirectory(external/lua)
 add_subdirectory(source)
-add_dependencies(cm3dcore lua)
 
 if (CM3D_BUILD_TESTS)
 	add_subdirectory(tests)

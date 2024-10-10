@@ -1,7 +1,9 @@
 #ifndef CM3D_UTILITY_HASH_HPP
 #define CM3D_UTILITY_HASH_HPP
 
+#include <cm3d/Utility/Debug.hpp>
 #include <cstdint>
+#include <cstddef>
 
 namespace cm3d
 {
@@ -29,7 +31,7 @@ namespace cm3d
 			auto i_arr = reinterpret_cast<const uint32_t *>(_arr);
 			auto c_arr = reinterpret_cast<const uint8_t *>(_arr);
 
-			uint32_t h;
+			uint32_t h = 0;
 			for (size_t i = 0; i < times; ++i)
 				h ^= cm3d::Hash::u32(i_arr[i] + i);
 

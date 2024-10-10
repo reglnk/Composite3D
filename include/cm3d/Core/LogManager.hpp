@@ -10,9 +10,9 @@
  * 4. Don't depend on time (e.g. int dataCheckPeriod = 500)
 **/
 
-#include <cm3d/Types/Aliases.hpp>
-#include <cm3d/Types/String.hpp>
-#include <cm3d/Types/Queue.hpp>
+#include <cm3d/Tl/Aliases.hpp>
+#include <cm3d/Tl/String.hpp>
+#include <cm3d/Tl/Queue.hpp>
 
 #include <cm3d/Utility/SysBasic.hpp>
 #include <cm3d/Utility/MtBasic.hpp>
@@ -84,7 +84,7 @@ namespace cm3d
 			const char *path,
 			const char *mode = stdOpenMode,
 			pLoggerFunc func = stdLoggerFunc
-		): logPath(path), logFunc(func), logState(0)
+		): logFunc(func), logPath(path), logState(0)
 		{
 			logThr = std::thread(logMain, this);
 			logFile = openStream(path, mode);
@@ -142,16 +142,19 @@ namespace cm3d
 			// TODO: test this
 			logFunc = func;
 		}
+
 /* ===============================================================
  * File management
 **/
 		bool open(const char *mode = stdOpenMode);
-		inline bool open(const char *path, const char *mode = stdOpenMode)
+		
+		inline bool openf(const char *path, const char *mode = stdOpenMode)
 		{
 			sUlock lock(pMtx);
 			logPath = path;
-			return this->open(path, mode);
+			return open(mode);
 		}
+		
 		inline void close() {
 			sUlock lock(fMtx);
 			fclose(logFile);

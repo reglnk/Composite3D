@@ -1,9 +1,9 @@
 #ifndef CM3D_GRAPHICS_HPP
 #define CM3D_GRAPHICS_HPP
 
-#include <cm3d/Types/Aliases.hpp>
-#include <cm3d/Types/String.hpp>
-#include <cm3d/Types/DynArray.hpp>
+#include <cm3d/Tl/Aliases.hpp>
+#include <cm3d/Tl/String.hpp>
+#include <cm3d/Tl/DynArray.hpp>
 #include <cm3d/Core/FileSystem.hpp>
 
 #include <glm/gtc/type_ptr.hpp>
@@ -22,37 +22,45 @@ namespace cm3d
 		class Texture2D
 		{
 		protected:
-			aiTextureType mType;
-			stbi_uc *mData;
-			int mWidth;
-			int mHeight;
-			int mChannels;
+			stbi_uc *mData = nullptr;
+			int mWidth = 0;
+			int mHeight = 0;
+			int mChannels = 0;
 			
 		public:
+			aiTextureType mType = aiTextureType_NONE;
 			FileSystem::sPath path;
 			
-			inline Texture2D(): mType(aiTextureType_NONE), path(), mData(nullptr) {}
-			inline Texture2D(aiTextureType type): mType(type), path(), mData(nullptr) {}
-			inline Texture2D(FileSystem::sPath const &path): mType(aiTextureType_NONE), path(path) {
-				if (!load())
-					throw std::runtime_error("Texture2D: load() failed");
+			inline Texture2D() = default;
+			inline Texture2D(aiTextureType type): mType(type) {}
+			inline Texture2D(FileSystem::sPath const &p): path(p) {}
+			inline Texture2D(aiTextureType type, FileSystem::sPath const &p): mType(type), path(p) {}
+			
+			inline Texture2D(Texture2D const &oth):
+				mWidth(oth.mWidth), mHeight(oth.mHeight), mChannels(oth.mChannels),
+				mType(oth.mType), path(oth.path)
+			{
+				const size_t memsz = mWidth * mHeight * mChannels;
+				mData = (stbi_uc *)mAlloc(memsz);
+				memcpy(mData, oth.mData, memsz);
 			}
-			inline Texture2D(aiTextureType type, FileSystem::sPath const &path): mType(type), path(path) {
-				if (!load())
-					throw std::runtime_error("Texture2D: load() failed");
-			}
+			inline Texture2D(Texture2D &&rv):
+				mData(rv.mData), mWidth(rv.mWidth), mHeight(rv.mHeight), mChannels(rv.mChannels),
+				mType(rv.mType), path(std::move(rv.path))
+			{ rv.mData = nullptr; }
+			
 			inline ~Texture2D() noexcept {
 				if (mData)
 					stbi_image_free(mData);
 			}
 			
-			constexpr inline auto type() {return mType; }
-			constexpr inline auto data() {return mData; }
-			constexpr inline auto width() {return mWidth; }
-			constexpr inline auto height() {return mHeight; }
-			constexpr inline auto channels() {return mChannels; }
+			constexpr inline auto type() const { return mType; }
+			constexpr inline auto data() const { return mData; }
+			constexpr inline auto width() const { return mWidth; }
+			constexpr inline auto height() const { return mHeight; }
+			constexpr inline auto channels() const { return mChannels; }
 			
-			inline operator bool() {
+			inline operator bool() const {
 				return mData;
 			}
 			
@@ -62,6 +70,7 @@ namespace cm3d
 				return mData = stbi_load(nat.c_str(), &mWidth, &mHeight, &mChannels, 0);
 			}
 		};
+		
 		struct Material
 		{
 			glm::vec3 diffuse;
@@ -74,8 +83,10 @@ namespace cm3d
 			float roughness;
 			float opacity;
 			
-			DynArray<Texture2D const *> textures;
+			String name;
+			DynArray<uint32_t> texIndex;
 		};
+		
 		class Mesh
 		{
 		protected:
@@ -97,6 +108,8 @@ namespace cm3d
 			
 		public:
 			inline Mesh() = default;
+			inline Mesh(Mesh const &) = default;
+			inline Mesh(Mesh &&) = default;
 			
 			// msh must be triangulated
 			Mesh(const aiMesh *msh):
@@ -149,8 +162,8 @@ namespace cm3d
 				}
 				for (uint32_t i = 0; i < texmap.size(); ++i) {
 					texmap[i] = glm::vec2(
-						msh->mTextureCoords[0]->x,
-						msh->mTextureCoords[0]->y
+						msh->mTextureCoords[0][i].x,
+						msh->mTextureCoords[0][i].y
 					);
 				}
 				for (uint32_t i = 0; i < vertexColors.size(); ++i) {
@@ -184,20 +197,24 @@ namespace cm3d
 				}
 			}
 			
-			inline const auto &getVertices() const { return vertices; }
-			inline const auto &getNormals() const { return normals; }
-			inline const auto &getTangents() const { return tangents; }
-			inline const auto &getBitangents() const { return bitangents; }
+			constexpr inline const auto &getVertices() const { return vertices; }
+			constexpr inline const auto &getNormals() const { return normals; }
+			constexpr inline const auto &getTangents() const { return tangents; }
+			constexpr inline const auto &getBitangents() const { return bitangents; }
 			
-			inline const auto &getTexmap() const { return texmap; }
-			inline const auto &getVertexColors() const { return vertexColors; }
+			constexpr inline const auto &getTexmap() const { return texmap; }
+			constexpr inline const auto &getVertexColors() const { return vertexColors; }
 			
-			inline const auto &getFaces() const { return faces; }
-			inline const auto &getEdges() const { return edges; }
-			inline const auto &getPoints() const { return points; }
+			constexpr inline const auto &getFaces() const { return faces; }
+			constexpr inline const auto &getEdges() const { return edges; }
+			constexpr inline const auto &getPoints() const { return points; }
 			
-			inline const auto &getName() const { return name; }
+			constexpr inline uint32_t getMatIndex() const { return matIndex; }
+			constexpr inline const auto &getName() const { return name; }
 		};
+		
+		// the node isn't standalone. Intended to have all existing meshes and materials
+		// somewhere outside of it
 		struct Node
 		{
 			uint32_t *meshesIdx = nullptr;
@@ -214,6 +231,63 @@ namespace cm3d
 					delete[] meshesIdx;
 				if (inner)
 					delete[] inner;
+			}
+			
+			inline Node() = default;
+			
+			inline Node (Node const &oth):
+				numMeshes(oth.numMeshes), numInner(oth.numInner),
+				transform(oth.transform), name(oth.name)
+			{
+				meshesIdx = new uint32_t[numMeshes];
+				for (uint32_t i = 0; i != numMeshes; ++i)
+					meshesIdx[i] = oth.meshesIdx[i];
+				
+				inner = new Node[numInner];
+				for (uint32_t i = 0; i != numInner; ++i)
+					inner[i] = oth.inner[i];
+			}
+			
+			inline Node (Node &&rv):
+				meshesIdx(rv.meshesIdx), inner(rv.inner),
+				numMeshes(rv.numMeshes), numInner(rv.numInner),
+				transform(rv.transform), name(rv.name)
+			{
+				rv.meshesIdx = nullptr;
+				rv.inner = nullptr;
+			}
+			
+			inline Node &operator =(Node const &oth)
+			{
+				numMeshes = oth.numMeshes;
+				numInner = oth.numInner;
+				transform = oth.transform;
+				name = oth.name;
+				
+				meshesIdx = new uint32_t[numMeshes];
+				for (uint32_t i = 0; i != numMeshes; ++i)
+					meshesIdx[i] = oth.meshesIdx[i];
+				
+				inner = new Node[numInner];
+				for (uint32_t i = 0; i != numInner; ++i)
+					inner[i] = oth.inner[i];
+				
+				return *this;
+			}
+			
+			inline Node &operator =(Node &&rv)
+			{
+				meshesIdx = rv.meshesIdx;
+				inner = rv.inner;
+				rv.meshesIdx = nullptr;
+				rv.inner = nullptr;
+				
+				numMeshes = rv.numMeshes;
+				numInner = rv.numInner;
+				transform = rv.transform;
+				name = rv.name;
+				
+				return *this;
 			}
 		};
 	}

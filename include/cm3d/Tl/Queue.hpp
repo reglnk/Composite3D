@@ -1,12 +1,12 @@
 #ifndef CM3D_BASIC_QUEUE_HPP
 #define CM3D_BASIC_QUEUE_HPP
 
-/* ==================================================
- * A minimalistic singly-linked queue without checks.
+/* ===================================================
+ * A minimalistic singly-linked queue, poor on checks.
 **/
 
-#include <cm3d/Types/SLNode.hpp>
-#include <cm3d/Types/SLNodeIterators.hpp>
+#include <cm3d/Tl/SLNode.hpp>
+#include <cm3d/Tl/SLNodeIterators.hpp>
 #include <cm3d/Utility/Std.hpp>
 
 #include <cstddef>
@@ -64,34 +64,34 @@ namespace cm3d
 		inline void pop() noexcept {
 			delete detach();
 		}
-		CM3D_CXX14_CONSTEXPR_INLINE cIterator begin() const {
+		constexpr inline cIterator begin() const {
 			return cIterator(begNode);
 		}
-		CM3D_CXX14_CONSTEXPR_INLINE Iterator begin() {
+		constexpr inline Iterator begin() {
 			return Iterator(begNode);
 		}
-		CM3D_CXX14_CONSTEXPR_INLINE cIterator last() const {
+		constexpr inline cIterator last() const {
 			return cIterator(endNode);
 		}
-		CM3D_CXX14_CONSTEXPR_INLINE Iterator last() {
+		constexpr inline Iterator last() {
 			return Iterator(endNode);
 		}
-		CM3D_CXX14_CONSTEXPR_INLINE Iterator end() const {
+		constexpr inline Iterator end() const {
 			return Iterator(nullptr);
 		}
-		CM3D_CXX14_CONSTEXPR_INLINE size_t length() const {
+		constexpr inline size_t length() const {
 			return len;
 		}
-		CM3D_CXX14_CONSTEXPR_INLINE const T &front() const {
+		constexpr inline const T &front() const {
 			return begNode->data;
 		}
-		CM3D_CXX14_CONSTEXPR_INLINE const T &back() const {
+		constexpr inline const T &back() const {
 			return endNode->data;
 		}
-		CM3D_CXX14_CONSTEXPR_INLINE T &front() {
+		constexpr inline T &front() {
 			return begNode->data;
 		}
-		CM3D_CXX14_CONSTEXPR_INLINE T &back() {
+		constexpr inline T &back() {
 			return endNode->data;
 		}
 	};

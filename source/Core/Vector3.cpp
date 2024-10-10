@@ -1,4 +1,6 @@
-#include <cm3d/Types/Vector3.hpp>
+#include <cm3d/Tl/Vector3.hpp>
+
+// @todo benchmark and try inlining some code into header
 
 namespace cm3d
 {
@@ -51,25 +53,11 @@ namespace cm3d
 		return *this;
 	}
 
-	Vector3 & Vector3::operator*=(glm::crvec3 const& v) {
-		x *= v.x;
-		y *= v.y;
-		z *= v.z;
-		return *this;
-	}
-
 	Vector3 & Vector3::operator/=(sReal const& v) {
 		sReal inv = static_cast<sReal>(1.0) / v;
 		x *= inv;
 		y *= inv;
 		z *= inv;
-		return *this;
-	}
-
-	Vector3 & Vector3::operator/=(glm::crvec3 const& v) {
-		x /= v.x;
-		y /= v.y;
-		z /= v.z;
 		return *this;
 	}
 
@@ -88,16 +76,8 @@ namespace cm3d
 		return Vector3(x * mul, y * mul, z * mul);
 	}
 
-	Vector3 Vector3::operator*(glm::crvec3 const& v) const {
-		return Vector3(x * v.x, y * v.y, z * v.z);
-	}
-
 	Vector3 Vector3::operator/(sReal const& v) const {
 		sReal inv = static_cast<sReal>(1.0) / v;
 		return Vector3(x * inv, y * inv, z * inv);
-	}
-
-	Vector3 Vector3::operator/(glm::crvec3 const& v) const {
-		return Vector3(x / v.x, y / v.y, z / v.z);
 	}
 } // namespace cm3d

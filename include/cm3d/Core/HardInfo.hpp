@@ -11,13 +11,8 @@ namespace cm3d
         size_t getTotalSystemMemory();
         size_t getFreeSystemMemory();
         
-        int32_t getNumCPUPackages();
-        int32_t getNumCPUCores();
-        int32_t getNumCPUThreads();
-
-        // 127 symbols followed by '\0' may be written.
-        // Returns length of written string.
-        unsigned int getCPUname(char *info);
+        int32_t getNumProcessors();
+        int32_t getNumProcessorsAvail();
     }
 }
 

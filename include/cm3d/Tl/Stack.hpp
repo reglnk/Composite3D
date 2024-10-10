@@ -1,8 +1,8 @@
 #ifndef CM3D_BASIC_STACK_HPP
 #define CM3D_BASIC_STACK_HPP
 
-#include <cm3d/Types/SLNode.hpp>
-#include <cm3d/Types/SLNodeIterators.hpp>
+#include <cm3d/Tl/SLNode.hpp>
+#include <cm3d/Tl/SLNodeIterators.hpp>
 #include <cm3d/Utility/Std.hpp>
 
 #include <cstddef>
@@ -55,28 +55,28 @@ namespace cm3d
 			while (topNode)
 				pop();
 		}
-		CM3D_CXX14_CONSTEXPR_INLINE size_t length() const {
+		constexpr inline size_t length() const {
 			return mLen;
 		}
-		CM3D_CXX14_CONSTEXPR_INLINE size_t size() const {
+		constexpr inline size_t size() const {
 			return mLen;
 		}
-		CM3D_CXX14_CONSTEXPR_INLINE cIterator begin() const {
+		constexpr inline cIterator begin() const {
 			return cIterator(topNode);
 		}
-		CM3D_CXX14_CONSTEXPR_INLINE Iterator begin() {
+		constexpr inline Iterator begin() {
 			return Iterator(topNode);
 		}
-		CM3D_CXX14_CONSTEXPR_INLINE Iterator end() const {
+		constexpr inline Iterator end() const {
 			return Iterator(nullptr);
 		}
-		CM3D_CXX14_CONSTEXPR_INLINE const T &back() const {
+		constexpr inline const T &back() const {
 			return topNode->data;
 		}
-		CM3D_CXX14_CONSTEXPR_INLINE T &back() {
+		constexpr inline T &back() {
 			return topNode->data;
 		}
-		CM3D_CXX14_CONSTEXPR_INLINE operator bool() {
+		constexpr inline operator bool() {
 			return topNode;
 		}
 	};

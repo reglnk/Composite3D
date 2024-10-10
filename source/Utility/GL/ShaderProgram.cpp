@@ -1,16 +1,19 @@
-#include <cm3d/Core/GLShaderProgram.hpp>
 #include <cm3d/Core/FileSystem.hpp>
+#include <cm3d/Utility/GL/ShaderProgram.hpp>
+#include <cm3d/Utility/GL/Preprocessor.hpp>
 
 #include <fstream>
 #include <iterator>
 
-namespace cm3d
+#define SHPROG_NS "cm3d::Utility::GL::ShaderProgram"
+
+namespace cm3d::Utility::GL
 {
-	bool GLShaderProgram::compile(
+	bool ShaderProgram::compile (
 		GLenum type,
 		const GLchar *src, const GLint srclen,
 		String *output,
-		const char *filewd
+		const char *filepath
 	) {
 		CM3D_ASSERT(src);
 		CM3D_ASSERT(srclen);
@@ -21,20 +24,29 @@ namespace cm3d
 		// Add configurations
 		for (size_t i = 0; i < defHeader.length(); ++i) {
 			strings.pushBack(defHeader[i].c_str());
-			lens.pushBack(defHeader[i].size());
+			lens.pushBack(defHeader[i].length());
 		}
 		
 		// Prepare the main source
 		DynArray<char> srcPreprocessed;
-		GLSLPreprocessor::processSource(src, src + srclen, &srcPreprocessed, filewd);
+		FileSystem::sPath filewd;
+		if (filepath) {
+			filewd = filepath;
+			FileSystem::parentDir(&filewd);
+		} else filewd = ".";
+		
+		Preprocessor::processSource(src, src + srclen, &srcPreprocessed, filewd);
 		strings.pushBack(srcPreprocessed.begin());
 		lens.pushBack(srcPreprocessed.size());
 		
 		// Create & compile the shader
 		GLuint new_shader = glCreateShader(type);
 		if (!new_shader) {
-			if (output)
-				*output += "GLShaderProgram::compile: glCreateShader failed\n";
+			if (output) {
+				*output += SHPROG_NS "::compile: error\nFailed to create shader [";
+				*output += getShaderTypeName(type);
+				*output += "]\n";
+			}
 			return false;
 		}
 		glShaderSource(new_shader, strings.length(), strings.data(), lens.data());
@@ -48,20 +60,32 @@ namespace cm3d
 		}
 		if (output)
 		{
-			GLint log_len;
-			glGetShaderiv(new_shader, GL_INFO_LOG_LENGTH, &log_len);
-			size_t cur_size = output->size();
-			output->resize(cur_size + log_len);
-			glGetShaderInfoLog(new_shader, log_len, NULL, output->begin() + cur_size);
+			*output += SHPROG_NS "::compile: error\nShader compilation failed [";
+			*output += getShaderTypeName(type);
+			if (filepath)
+			{
+				*output += ", \"";
+				*output += filepath;
+				*output += "\"]\n";
+			}
+			
+			GLint log_buf_size;
+			glGetShaderiv(new_shader, GL_INFO_LOG_LENGTH, &log_buf_size);
+			
+			if (log_buf_size)
+			{
+				size_t cur_len = output->length();
+				output->resize(cur_len + log_buf_size - 1);
+				glGetShaderInfoLog(new_shader, log_buf_size, NULL, output->begin() + cur_len);
+			}
+			*output += "\n";
 		}
 		return false;
 	}
 
 	// Link all compiled shaders into the program
-	bool GLShaderProgram::link(String *output)
+	bool ShaderProgram::link(String *output)
 	{
-		int errcode = 0;
-		
 		for (auto el: compiledShaders) {
 			auto &stage = el.second;
 			for (auto &shaderId: stage)
@@ -85,11 +109,17 @@ namespace cm3d
 		
 		if (output)
 		{
-			GLint log_len;
-			glGetProgramiv(Id, GL_INFO_LOG_LENGTH, &log_len);
-			output->resize(log_len);
-			glGetProgramInfoLog(Id, output->size(), NULL, output->data());
+			GLint log_buf_size;
+			glGetProgramiv(Id, GL_INFO_LOG_LENGTH, &log_buf_size);
+			
+			if (log_buf_size)
+			{
+				size_t cur_len = output->length();
+				output->resize(cur_len + log_buf_size - 1);
+				glGetProgramInfoLog(Id, log_buf_size, NULL, output->begin() + cur_len);
+			}
+			*output += "\n";
 		}
 		return false;
 	}
-} // namespace cm3d
+}
