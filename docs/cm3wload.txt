@@ -1,0 +1,16 @@
+The file describes how the World is loaded and saved.
+
+All features:
+
+1. Basic stupid routines
+1.1. Direct loading (file --> cm3d::World) O(N)
+1.2. Direct saving (cm3d::World + metadata --> new file) O(N)
+
+2. + convenience & perf
+2.1. Updating (cm3d::World [+ metadata] --> file) max: O(N)
+2.2. Parsing metadata (file --> metadata) O(M)
+2.3. Changing metadata (metadata --> file) max: O(N), min: O(M)
+2.4. Loading objects and modules partially, by ID (even without reading whole file) O(objsize) for each object
+
+Keep in mind, all ID tables must be loaded before saving newly created objects
+(those objects which are created after loading a file), to prevent ID conflict.

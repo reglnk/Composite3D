@@ -15,10 +15,10 @@ The Worldfile has extension .cm3w in all applicable filesystems.
 Each entire valid object of World class can be serialized into one Worldfile without loss of information,
 and hence be deserialized from any valid Worldfile.
 
-When (de)serializing, the key-value pairs of UniqueStorage cannot change value for:
+When (de)serializing, the key-value pairs of the following UniqueStorage fields cannot be rearranged (change key):
 - World::objects
 - World::sharedModules
-(unlike private modules, which are stored in UniqueStorage for convenient insertion and deletion only)
+(unlike pairs of cm3d::Object fields, which exist as UniqueStorage for convenient insertion and deletion only)
 
 Following numeric descriptions are used as for C language. Types are from <stdint.h>.
 Where applicable, binary structures layout is described with C language, but:
@@ -36,7 +36,7 @@ struct Header
     uint32_t endianness; /* In hexadecimal, for LE: 71,d0,ee,f5 BE: f5,ee,d0,71
         So, the number 0xf5eed071 in selected endianness. Further, consider all numbers
         are in the same endianness. */
-    
+
     uint32_t version; /* Unique version identifier of the format. The current document describes version number 0. */
     uint32_t blkMetaSize; /* Meta block size, from 1 byte to a.sz. */
     uint64_t blkObjMapSize; /* Size of objects mapping, from sizeof(uint64_t) to a.sz. */
@@ -51,43 +51,41 @@ struct Metadata
 
 struct idLocData
 {
-    uint64_t id; // may be allocated module ID or object ID
+    uint64_t id; // may be an allocated module ID or object ID
     uint64_t fileOffset;
 };
 
 struct objectLocations
 {
-    uint64_t blkObjLocLen;
-    struct idLocData data[blkObjLocLen];
-    
+    struct idLocData data[blkObjMapSize];
+
     /* doesn't matter */
-    char remainingSpace[blkObjMapSize - offsetof(objectLocations, remainingSpace)];
+    char remainingSpace[blkObjMapSize * sizeof(idLocData) - offsetof(objectLocations, remainingSpace)];
 };
 
 struct shrModulesLocations
 {
-    uint64_t blkSharedLocLen;
-    struct idLocData data[blkSharedLocLen];
-    
+    struct idLocData data[blkSharedMapSize];
+
     /* doesn't matter */
-    char remainingSpace[blkSharedMapSize - offsetof(shrModulesLocations, remainingSpace)];
+    char remainingSpace[blkSharedMapSize * sizeof(idLocData) - offsetof(shrModulesLocations, remainingSpace)];
 };
 
 struct Module
 {
-    uint32_t mType;
     uint64_t mSize;
-    
+    uint32_t mType;
+
     /* size: mSize; contents are defined by mType and the type of module itself. */
     char data[mSize];
 };
 
 struct Object
 {
-	uint64_t numPrivateModules;
-    uint64_t numShrModules;
-    uint64_t shrModulesIds[numShrModules]; /* count: numShrModules */
-    struct Module modules[numPrivateModules]; /* count: numPrivateModules */
+	uint32_t numModules;
+    uint32_t numShrModules;
+    uint64_t shrModulesIds[numShrModules];
+    struct Module modules[numModules];
 };
 
 struct Worldfile
@@ -96,7 +94,7 @@ struct Worldfile
     struct Metadata meta;
     struct objectLocations objLocTable;
     struct shrModulesLocations shrModulesLocTable;
-    
+
     /* the order of following data may be mixed and chaotic,
        while only maintaining integrity of each Object and Module, and following above tables */
 	mixed {
@@ -119,5 +117,4 @@ for example:
 So it would take only 2 calls of disk reading: for sections 1...2 and 3...4,
 even if there're more than 2 objects (or shared modules).
 
-2. remove shared modules at all cuz that behavior may be done via
-creating some object and adding it as a dependency to other objects which share its module.
+2. btw it's possible to track all objects added to an IdMap since the last save

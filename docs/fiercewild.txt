@@ -1,0 +1,65 @@
+Keywords: RS (Render Surface), mesh, node, material, shader, texture.
+Some features described in document may be unsupported.
+
+Throughout the document, the following from Fiercewild implementation code:
+using fw = cm3d::Render::Fiercewild;
+fw::Modules::RenderSurface corresponds to RS;
+fw::rsdNode corr. to Node;
+fw::MeshRenderData corr. to Mesh.
+
+RS is key module that is processed by Fiercewild,
+and is relative to cm3d::Modules::RenderSurface (follows its structure).
+
+Each RS consists of meshes. This allows to move them
+separately from each other and to assign them different materials.
+
+Meshes aren't directly stored in RS. Instead, they are contained in Nodes.
+Each RS has just a root node, and no more are strictly required.
+Each node:
+2.1. may contain (almost) unlimited subnodes.
+2.2. has a transform matrix (4x4) that determines its position relative to parent node,
+or to the RS itself, if it's root node.
+
+Each mesh:
+3.1. consists of triangles and/or lines.
+Points are silently ignored (not rendered).
+3.2. has one material assigned.
+If some mesh hasn't a msterial, its absolutely useless to render.
+3.3. Unlike nodes, has not a transform matrix
+(so as to move some mesh relative to another while they are
+contained in the same node, they have to be separated).
+Maybe that should be changed, but definitely without removing this property from nodes.
+
+Each material:
+4.1. May have one custom shader of each type: vertex, fragment, or geometry, for each
+geometry type: triangles or lines.
+If not, defaults are used.
+All custom shaders and default one use the API provided by Fiercewild and GLSL 330.
+Any single shader may be used by more than 1 material, so
+it must have a string identifier, for example: "metal".
+The one string from "_vs", "_fs", "_gs" is appended
+for vertex, fragment and geometry shader, respectively.
+The 'l' character is then appended for line shader.
+The string ".glsl" is appended to get an actual shader path.
+The resulting path is then appended to the path of selected shaders
+directory, for example: "./resources/shaders/".
+The final path looks like "./resources/shaders/metal_fs.glsl".
+The fallback shader identifier "default". It's not stored in directory but can be overridden by a file, partially (frag, vs, gs) or fully.
+
+4.2. May have from 0 to not-so-big-amount textures of each type.
+The amount is defined by graphics driver implementation.
+Usage of each of them is defined by a fragment shader
+(the default one is limited to max. 1 texture of each type).
+Some types are listed below:
+- diffuse
+- ambient
+- specular
+- normals
+- roughness
+- metallic
+
+Textures may be either embedded or separate. Each reference to a texture (a path) is considered
+unique, textures are not cached, even if several references point to the same texture file.
+Maybe that should be changed.
+
+
