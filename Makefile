@@ -27,6 +27,16 @@ else
   targetOS = $(shell uname -s)
 endif
 
+# == what can be done to obtain libs ==
+# 'clone' implies 'build'
+# 'build' will run make/cmake/whatever and build the library if needed, according to build profile
+# 'systemlib' will try to find systemwide installed library and use it
+# 'provided' will try to use prebuilt library by paths provided in module.mk for each dependency
+deps_ACT ?= provided,systemlib,build,clone
+
+# do this for setting no action for all dependencies
+# deps_ACT = 0
+
 include gmake/assimp.mk
 include gmake/glfw.mk
 include gmake/luarjit.mk

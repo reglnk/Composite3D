@@ -98,7 +98,7 @@ local function tryBuild()
 	local fmt = 'cmake -S "%s" -B "%s" -DCMAKE_BUILD_TYPE=Release -DASSIMP_WARNINGS_AS_ERRORS=OFF -DASSIMP_BUILD_TESTS=OFF';
 	if targetOS == "Windows" then fmt = fmt .. ' -G "MinGW Makefiles"' end
 	shexecf(fmt, ldir, lbdir);
-	shexecf('make -C "%s" -j4', lbdir);
+	shexecf('gmake -C "%s" -j4', lbdir);
 	-- TODO find static library if assimp's built so
 	local ilib
 	if targetOS ~= "Windows" then
@@ -132,6 +132,7 @@ local acttab = {
 	["systemlib"] = trySystemUnix,
 	["build"] = tryBuild,
 	["clone"] = tryClone,
+	["0"] = function() end
 };
 
 for i, v in ipairs(lact) do

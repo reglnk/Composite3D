@@ -97,7 +97,7 @@ local function tryBuild()
 	local fmt = 'cmake -S "%s" -B "%s" -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON -DGLFW_BUILD_TESTS=OFF -DGLFW_BUILD_EXAMPLES=OFF';
 	if targetOS == "Windows" then fmt = fmt .. ' -G "MinGW Makefiles"' end
 	shexecf(fmt, ldir, lbdir);
-	shexecf('make -C "%s" -j4', lbdir);
+	shexecf('gmake -C "%s" -j4', lbdir);
 	-- TODO find static library if glfw's built so
 	local ilib
 	if targetOS ~= "Windows" then
@@ -131,6 +131,7 @@ local acttab = {
 	["systemlib"] = trySystemUnix,
 	["build"] = tryBuild,
 	["clone"] = tryClone,
+	["0"] = function() end
 };
 
 for i, v in ipairs(lact) do

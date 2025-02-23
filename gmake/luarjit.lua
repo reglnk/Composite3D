@@ -88,7 +88,7 @@ local function tryBuild()
 		verbose("[luarjit.lua] includes not found at [".. linc .."]")
 		return
 	end
-	shexecf('make -C "%s" -j4', lbdir);
+	shexecf('gmake -C "%s" -j4', lbdir);
 	-- TODO find static library if luarjit's built so
 	local ilib
 	if targetOS ~= "Windows" then
@@ -122,6 +122,7 @@ local acttab = {
 	["systemlib"] = trySystemUnix,
 	["build"] = tryBuild,
 	["clone"] = tryClone,
+	["0"] = function() end
 };
 
 for i, v in ipairs(lact) do
