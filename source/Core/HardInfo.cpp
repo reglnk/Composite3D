@@ -1,12 +1,15 @@
 #include <cm3d/Core/HardInfo.hpp>
 
-#ifndef _WIN32
-#	include <unistd.h>
-#	include <sys/sysinfo.h>
-#	include <fstream>
-#	include <cstring>
-#else
-#	include <sysinfoapi.h>
+#ifdef _WIN32
+#  include <sysinfoapi.h>
+#elif defined(__linux__)
+#  include <unistd.h>
+#  include <sys/sysinfo.h>
+#  include <fstream>
+#  include <cstring>
+#else // assuming FreeBSD, maybe other Unix
+#  include <sys/sysctl.h>
+#warning 12
 #endif
 
 namespace cm3d::HardInfo
@@ -50,7 +53,7 @@ namespace cm3d::HardInfo
 		return active;
 	}
 	
-#else
+#elif defined(__linux__)
 	size_t getTotalSystemMemory() {
 		return get_phys_pages() * getpagesize();
 	}
@@ -65,6 +68,22 @@ namespace cm3d::HardInfo
 	
 	int getNumProcessorsAvail() {
 		return get_nprocs_conf();
+	}
+#else // @todo
+	size_t getTotalSystemMemory() {
+		return 0;
+	}
+
+	size_t getFreeSystemMemory() {
+		return 0;
+	}
+
+	int getNumProcessors() {
+		return 0;
+	}
+
+	int getNumProcessorsAvail() {
+		return 0;
 	}
 #endif
 }

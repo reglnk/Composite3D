@@ -1,2 +1,7 @@
-/build*/
+build*/
+obj/
+
+.junk/
 .vscode/
+
+.clangd

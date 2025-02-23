@@ -7,3 +7,6 @@ set_target_properties(testsCoreLogMgr PROPERTIES
 )
 target_include_directories(testsCoreLogMgr PRIVATE "${CM3D_INTERNAL_INCDIRS}")
 target_link_libraries(testsCoreLogMgr "$<TARGET_FILE:cm3dcore>")
+if (NOT WIN32) # @todo: check on linux
+    target_link_libraries(testsCoreLogMgr pthread)
+endif()

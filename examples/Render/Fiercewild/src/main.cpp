@@ -76,7 +76,7 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
-	lua_Unsigned tsize = lua_rawlen(L, 1);
+	size_t tsize = lua_objlen(L, 1);
 	std::cout << "objects: " << tsize << '\n';
 
 	std::unordered_map<FileSystem::sPath, std::shared_ptr<Modules::RenderSurface>> rsModels;
@@ -84,7 +84,7 @@ int main(int argc, char **argv)
 
 	LogManager logmgr("latest.log");
 
-	for (lua_Unsigned n = 1; n <= tsize; ++n)
+	for (size_t n = 1; n <= tsize; ++n)
 	{
 		lua_rawgeti(L, 1, n);
 		if (!lua_istable(L, 2)) {

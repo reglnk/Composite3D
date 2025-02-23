@@ -10,3 +10,6 @@ set_target_properties(testsModulesRenderSurface PROPERTIES
 )
 target_include_directories(testsModulesRenderSurface PRIVATE "${CM3D_INTERNAL_INCDIRS}")
 target_link_libraries(testsModulesRenderSurface "$<TARGET_FILE:cm3dcore>" "${CM3D_INTERNAL_ASSIMP_LIBS}")
+if (NOT WIN32) # @todo: check on linux
+    target_link_libraries(testsModulesRenderSurface pthread)
+endif()

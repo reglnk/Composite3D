@@ -35,9 +35,9 @@ set(EXT_ASSIMP_INCLUDE_DIR "" CACHE PATH "")
 set(EXT_ASSIMP_BUILD_INCLUDE_DIR "" CACHE PATH "Contains config.h")
 set(EXT_ASSIMP_LIBRARY_PATH "" CACHE FILEPATH "Import library file")
 
-if (EXT_ASSIMP_INCLUDE_DIR AND
-	EXT_ASSIMP_BUILD_INCLUDE_DIR AND
-	EXT_ASSIMP_LIBRARY_PATH
+if (EXT_ASSIMP_INCLUDE_DIR
+AND EXT_ASSIMP_BUILD_INCLUDE_DIR
+AND EXT_ASSIMP_LIBRARY_PATH
 )
 	message(STATUS "Using Assimp with provided paths")
 	list(APPEND CM3D_INTERNAL_INCDIRS
@@ -58,8 +58,8 @@ endif()
 set(EXT_GLFW_INCLUDE_DIR "" CACHE PATH "")
 set(EXT_GLFW_LIBRARY_PATH "" CACHE FILEPATH "Import library file")
 
-if (EXT_GLFW_INCLUDE_DIR AND
-	EXT_GLFW_LIBRARY_PATH
+if (EXT_GLFW_INCLUDE_DIR
+AND EXT_GLFW_LIBRARY_PATH
 )
 	message(STATUS "Using GLFW with provided paths")
 	list(APPEND CM3D_INTERNAL_INCDIRS
@@ -73,6 +73,35 @@ else()
 	# GLFW includes system directories itself
 	set(CM3D_INTERNAL_GLFW_LIBS "glfw" CACHE INTERNAL "")
 endif()
+
+# =====================================
+
+# set(EXT_LUAJIT_INCLUDE_DIR "" CACHE PATH "")
+# set(EXT_LUAJIT_LIBRARY_PATH "" CACHE FILEPATH "Import library file")
+
+# if (EXT_LUAJIT_INCLUDE_DIR
+# AND EXT_LUAJIT_LIBRARY_PATH
+# )
+	# message(STATUS "Using LuaJIT with provided paths")
+	# list(APPEND CM3D_INTERNAL_INCDIRS
+		# "${EXT_LUAJIT_INCLUDE_DIR}"
+		# "${EXT_LUAJIT_BUILD_INCLUDE_DIR}"
+	# )
+	# set(CM3D_INTERNAL_LUAJIT_LIBS "${EXT_LUAJIT_LIBRARY_PATH}" CACHE INTERNAL "")
+	# unset(assimp_DIR CACHE)
+# else()
+	# find_package(luajit REQUIRED)
+	# message(STATUS "Found LuaJIT package")
+	# include_directories(SYSTEM ${LUAJIT_INCLUDE_DIRS})
+	# set(CM3D_INTERNAL_LUAJIT_LIBS "${LUAJIT_LIBRARIES}" CACHE INTERNAL "")
+# endif()
+
+# find_program (
+# 	MAKE_EXECUTABLE
+# 	NAMES gmake mingw32-make make
+# 	NAMES_PER_DIR
+# 	DOC "GNU Make"
+# )
 
 # =====================================
 
