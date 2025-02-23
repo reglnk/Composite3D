@@ -22,6 +22,16 @@ So use GNU make from the root project directory, it should create the following 
 build/\<YourSystem\>/\<BuildProfile\>,
 automatically clone dependencies if necessary, and build them using the same build directories, and continue building the engine.
 
+### prerequisites
+- shell (sh or bash) \
+    if you use Windows - Git For Windows or MSYS2 is sufficient
+- some supported C and C++ compilers \
+    for Windows - get MinGW or LLVM-MinGW. MSVC-conformant Clang isn't supported.
+- lua interpreter (5.1 conformant) available in your shell
+- ready-to use dependencies in `./external` directory: GLFW, assimp, luarjit2 \
+    or ones installed on your system \
+    or internet connection and a few hundreds extra MB space on filesystem
+
 ###
 To prevent cloning and/or building and/or searching for system libraries, override GNUmake variables `assimp_ACT`, `glfw_ACT`, `luarjit_ACT` and so on (read gmake/\*.mk). \
 Or, for all of dependencies in bunch, do the same with `deps_ACT`. \
