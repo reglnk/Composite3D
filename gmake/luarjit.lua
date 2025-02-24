@@ -20,17 +20,21 @@ local ldir = "external/luarjit2"
 local linc = ldir .."/src"
 local lbdir = ldir .."/src"
 
+local message_verbose = function(...)
+	print("=== [luarjit.lua] ".. table.concat({...}))
+end
+
 -- ================
 
-shexecf('/bin/mkdir -p "%s"', outDir);
+shexecf('mkdir -p "%s"', outDir);
 
 local function tryProvided()
 	if not checkdir(ldir) then
-		verbose("[luarjit.lua] not found at [".. ldir .."]")
+		message_verbose("not found at [".. ldir .."]")
 		return
 	end
 	if not checkdir(linc) then
-		verbose("[luarjit.lua] includes not found at [".. linc .."]")
+		message_verbose("includes not found at [".. linc .."]")
 		return
 	end
 	-- TODO find static library if luarjit's built so
@@ -41,7 +45,7 @@ local function tryProvided()
 		ilib = ldir .. "/src/libluarjit-5.1.dll.a";
 	end
 	if not checkfile(ilib) then
-		verbose("[luarjit.lua] library not found at [".. ilib .."]");
+		message_verbose("library not found at [".. ilib .."]");
 		return
 	end
 	return {
@@ -55,7 +59,7 @@ end
 local function trySystemUnix()
 	local res = {luarjit_INC = "/usr/local/include/luarjit-2.1"};
 	if not checkdir(res.luarjit_INC) then
-		verbose("[luarjit.lua] includes not found at [".. res.luarjit_INC .."]")
+		message_verbose("includes not found at [".. res.luarjit_INC .."]")
 		return
 	end
 	for ld in pairs {"/usr/lib", "/usr/local/lib", "/usr/lib64", "/usr/local/lib64"} do
@@ -72,7 +76,7 @@ end
 local function trySystemWindows()
 	local res = {luarjit_DIR = "C:/Program Files (x86)/luarjit"};
 	if not checkdir(res.luarjit_DIR) then
-		verbose("[luarjit.lua] not found at [".. res.luarjit_DIR .."]")
+		message_verbose("not found at [".. res.luarjit_DIR .."]")
 		return
 	end
 	-- todo
@@ -81,11 +85,11 @@ end
 
 local function tryBuild()
 	if not checkdir(ldir) then
-		verbose("[luarjit.lua] not found at [".. ldir .."]")
+		message_verbose("not found at [".. ldir .."]")
 		return
 	end
 	if not checkdir(linc) then
-		verbose("[luarjit.lua] includes not found at [".. linc .."]")
+		message_verbose("includes not found at [".. linc .."]")
 		return
 	end
 	shexecf('gmake -C "%s" -j4', lbdir);
@@ -97,8 +101,8 @@ local function tryBuild()
 		ilib = ldir .. "/src/libluarjit-5.1.dll.a";
 	end
 	if not checkfile(ilib) then
-		verbose("[luarjit.lua] library not found at [".. ilib .."]");
-		return
+		message_verbose("library not found at [".. ilib .."] - after a build attempt");
+		return false
 	end
 	return {
 		luarjit_DIR = ldir,
@@ -110,10 +114,9 @@ end
 
 local function tryClone()
 	if not checkdir(ldir) then
-		verbose("[luarjit.lua] not found at [".. ldir .."]. cloning...")
+		message_verbose("not found at [".. ldir .."]. cloning...")
 		shexecf('git clone https://github.com/reglnk/luarjit2 "%s"', ldir)
 	end
-	-- shexecf('git -C "%s" checkout 7b6aead9fb88b3623e3b3725ebb42670cbe4c579', ldir) -- 5.4.3
 	return tryBuild()
 end
 
@@ -125,19 +128,9 @@ local acttab = {
 	["0"] = function() end
 };
 
-for i, v in ipairs(lact) do
-	local res = acttab[v]()
-	if res then
-		local fp = io.open(outFile, "wb")
-		if not fp then error("failed to open outFile") end
-		for k, kv in pairs(res) do
-			fp:write(k .. "=" .. kv .. "\n")
-		end
-		fp:flush()
-		fp:close()
-		os.execute("sync")
-		break
-	end
+local success = main_action(lact, acttab, outFile, message_verbose);
+if success then
+	return
 end
 
-return 0
+message_error("no one of methods worked");

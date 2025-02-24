@@ -21,7 +21,7 @@ CFLAGS   +=	-std=gnu99
 CXXFLAGS +=	-std=gnu++20
 
 targetOS=	default
-ifeq ($(OS),Windows_NT)
+ifeq ($(OS), Windows_NT)
   targetOS = Windows
 else
   targetOS = $(shell uname -s)
@@ -33,6 +33,35 @@ endif
 # 'systemlib' will try to find systemwide installed library and use it
 # 'provided' will try to use prebuilt library by paths provided in module.mk for each dependency
 deps_ACT ?= provided,systemlib,build,clone
+
+lua_BIN ?= lua
+
+# usually on Linux you'll find 'lua' available from everywhere in shell,
+# or specific version like 'lua5.1' or 'lua5.4'
+# on FreeBSD, it's 'lua54', 'lua51' and so on, probably without 'lua'
+
+# if it's not overridden, try different variants:
+ifeq ($(lua_BIN), lua)
+  ifeq (, $(shell command -v lua))
+    ifneq (, $(shell command -v lua5.1))
+      lua_BIN = lua5.1
+    else ifneq (, $(shell command -v lua51))
+      lua_BIN = lua51
+    else ifneq (, $(shell command -v lua5.2))
+      lua_BIN = lua5.2
+    else ifneq (, $(shell command -v lua52))
+      lua_BIN = lua52
+    else ifneq (, $(shell command -v lua5.3))
+      lua_BIN = lua5.3
+    else ifneq (, $(shell command -v lua53))
+      lua_BIN = lua53
+    else ifneq (, $(shell command -v lua5.4))
+      lua_BIN = lua5.4
+    else ifneq (, $(shell command -v lua54))
+      lua_BIN = lua54
+    endif
+  endif
+endif
 
 # do this for setting no action for all dependencies
 # deps_ACT = 0
@@ -48,14 +77,17 @@ default: all
 
 .PHONY: prepareAssimp
 prepareAssimp:
+	@echo [Assimp is being prepared]
 	$(call assimp_Prepare)
 
 .PHONY: prepareGLFW
 prepareGLFW:
+	@echo [GLFW is being prepared]
 	$(call glfw_Prepare)
 
 .PHONY: prepareLuarJIT
 prepareLuarJIT:
+	@echo [LuarJIT is being prepared]
 	$(call luarjit_Prepare)
 
 # call this before making each dependent target to ensure that

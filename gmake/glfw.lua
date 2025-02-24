@@ -20,22 +20,26 @@ local ldir = "external/glfw"
 local linc = ldir .."/include"
 local lbdir = ldir .."/build/".. targetOS .."/".. buildProfile
 
+local message_verbose = function(...)
+	print("[glfw.lua] ".. table.concat({...}))
+end
+
 -- ================
 
-shexecf('/bin/mkdir -p "%s"', outDir);
+shexecf('mkdir -p "%s"', outDir);
 
 local function tryProvided()
 	if not checkdir(ldir) then
-		verbose("[glfw.lua] not found at [".. ldir .."]")
+		message_verbose("not found at [".. ldir .."]")
 		return
 	end
 	if not checkdir(linc) then
-		verbose("[glfw.lua] includes not found at [".. linc .."]")
+		message_verbose("includes not found at [".. linc .."]")
 		return
 	end
 	local bobj = checkdir(lbdir);
 	if not bobj then
-		verbose("[glfw.lua] not all or no build objects found at [".. lbdir .."]")
+		message_verbose("not all or no build objects found at [".. lbdir .."]")
 		return
 	end
 	-- TODO find static library if glfw's built so
@@ -46,7 +50,7 @@ local function tryProvided()
 		ilib = lbdir .. "/src/libglfw.dll.a";
 	end
 	if not checkfile(ilib) then
-		verbose("[glfw.lua] library not found at [".. ilib .."]");
+		message_verbose("library not found at [".. ilib .."]");
 		return
 	end
 	return {
@@ -60,7 +64,7 @@ end
 local function trySystemUnix()
 	local res = {glfw_INC = "/usr/include"};
 	if not checkdir(res.glfw_INC .. "/GLFW") then
-		verbose("[glfw.lua] includes not found at [".. res.glfw_INC .."]")
+		message_verbose("includes not found at [".. res.glfw_INC .."]")
 		return
 	end
 	for ld in pairs {"/usr/lib", "/usr/local/lib", "/usr/lib64", "/usr/local/lib64"} do
@@ -77,7 +81,7 @@ end
 local function trySystemWindows()
 	local res = {glfw_DIR = "C:/Program Files (x86)/glfw"};
 	if not checkdir(res.glfw_DIR) then
-		verbose("[glfw.lua] not found at [".. res.glfw_DIR .."]")
+		message_verbose("not found at [".. res.glfw_DIR .."]")
 		return
 	end
 	-- todo
@@ -86,14 +90,14 @@ end
 
 local function tryBuild()
 	if not checkdir(ldir) then
-		verbose("[glfw.lua] not found at [".. ldir .."]")
+		message_verbose("not found at [".. ldir .."]")
 		return
 	end
 	if not checkdir(linc) then
-		verbose("[glfw.lua] includes not found at [".. linc .."]")
+		message_verbose("includes not found at [".. linc .."]")
 		return
 	end
-	shexecf('/bin/mkdir -p "%s"', lbdir);
+	shexecf('mkdir -p "%s"', lbdir);
 	local fmt = 'cmake -S "%s" -B "%s" -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON -DGLFW_BUILD_TESTS=OFF -DGLFW_BUILD_EXAMPLES=OFF';
 	if targetOS == "Windows" then fmt = fmt .. ' -G "MinGW Makefiles"' end
 	shexecf(fmt, ldir, lbdir);
@@ -106,8 +110,8 @@ local function tryBuild()
 		ilib = lbdir .. "/src/libglfw.dll.a";
 	end
 	if not checkfile(ilib) then
-		verbose("[glfw.lua] library not found at [".. ilib .."]");
-		return
+		message_verbose("library not found at [".. ilib .."] after a build attempt");
+		return false
 	end
 	return {
 		glfw_DIR = ldir,
@@ -119,10 +123,10 @@ end
 
 local function tryClone()
 	if not checkdir(ldir) then
-		verbose("[glfw.lua] not found at [".. ldir .."]. cloning...")
+		message_verbose("not found at [".. ldir .."]. cloning...")
 		shexecf('git clone https://github.com/glfw/glfw "%s"', ldir)
 	end
-	-- shexecf('git -C "%s" checkout 7b6aead9fb88b3623e3b3725ebb42670cbe4c579', ldir) -- 5.4.3
+	shexecf('git -C "%s" checkout dc46d3f8129712e42856c20e99a604a3b08ad581', ldir) -- 3.3.10
 	return tryBuild()
 end
 
@@ -134,19 +138,9 @@ local acttab = {
 	["0"] = function() end
 };
 
-for i, v in ipairs(lact) do
-	local res = acttab[v]()
-	if res then
-		local fp = io.open(outFile, "wb")
-		if not fp then error("failed to open outFile") end
-		for k, kv in pairs(res) do
-			fp:write(k .. "=" .. kv .. "\n")
-		end
-		fp:flush()
-		fp:close()
-		os.execute("sync")
-		break
-	end
+local success = main_action(lact, acttab, outFile, message_verbose);
+if success then
+	return
 end
 
-return 0
+message_error("no one of methods worked");

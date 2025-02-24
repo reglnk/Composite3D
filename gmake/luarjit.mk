@@ -9,5 +9,5 @@ luarjit_CACHEDIR = build/$(targetOS)/$(buildProfile)
 
 # arguments: permitted actions, OS, profile, file for output
 define luarjit_Prepare
-	lua gmake/luarjit.lua $(luarjit_ACT) $(targetOS) $(buildProfile) $(luarjit_CACHEDIR)
+	$(lua_BIN) gmake/luarjit.lua $(luarjit_ACT) $(targetOS) $(buildProfile) $(luarjit_CACHEDIR)
 endef

@@ -58,3 +58,35 @@ function checkfile(path)
 	fp:close()
 	return path
 end
+
+-- error is intended to stop GNU make
+function message_error(...)
+	-- error("\x1b[0;33m".. table.concat({...}) .."\x1b[0m")
+	error(table.concat({...}))
+end
+
+function main_action(lact, acttab, outFile, verbose)
+	local success = false
+	for i, v in ipairs(lact) do
+		verbose("trying method '".. v .. "'");
+		local res = acttab[v]()
+		if res then
+			local fp = io.open(outFile, "wb")
+			if not fp then error("failed to open outFile") end
+			for k, kv in pairs(res) do
+				fp:write(k .. "=" .. kv .. "\n")
+			end
+			fp:flush()
+			fp:close()
+			os.execute("sync")
+			success = true
+			break
+		end
+		-- if the build failed, it's stupid to immediately try again
+		if res == false then
+			message_error("deciding not to continue");
+			break
+		end
+	end
+	return success
+end

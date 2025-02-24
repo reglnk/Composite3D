@@ -9,5 +9,6 @@ glfw_CACHEDIR = build/$(targetOS)/$(buildProfile)
 
 # arguments: permitted actions, OS, profile, file for output
 define glfw_Prepare
-	lua gmake/glfw.lua $(glfw_ACT) $(targetOS) $(buildProfile) $(glfw_CACHEDIR)
+	$(lua_BIN) gmake/glfw.lua $(glfw_ACT) $(targetOS) $(buildProfile) $(glfw_CACHEDIR)
+	echo $$?
 endef

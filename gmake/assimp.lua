@@ -21,22 +21,26 @@ local ldir = "external/assimp"
 local linc = ldir .."/include"
 local lbdir = ldir .."/build/".. targetOS .."/".. buildProfile
 
+local message_verbose = function(...)
+	print("[assimp.lua] ".. table.concat({...}))
+end
+
 -- ================
 
-shexecf('/bin/mkdir -p "%s"', outDir);
+shexecf('mkdir -p "%s"', outDir);
 
 local function tryProvided()
 	if not checkdir(ldir) then
-		verbose("[assimp.lua] not found at [".. ldir .."]")
+		message_verbose("not found at [".. ldir .."]")
 		return
 	end
 	if not checkdir(linc) then
-		verbose("[assimp.lua] includes not found at [".. linc .."]")
+		message_verbose("includes not found at [".. linc .."]")
 		return
 	end
 	local bobj = checkdir(lbdir) and checkdir(lbdir .."/include");
 	if not bobj then
-		verbose("[assimp.lua] not all or no build objects found at [".. lbdir .."]")
+		message_verbose("not all or no build objects found at [".. lbdir .."]")
 		return
 	end
 	-- TODO find static library if assimp's built so
@@ -47,7 +51,7 @@ local function tryProvided()
 		ilib = lbdir .. "/lib/libassimp.dll.a";
 	end
 	if not checkfile(ilib) then
-		verbose("[assimp.lua] library not found at [".. ilib .."]");
+		message_verbose("library not found at [".. ilib .."]");
 		return
 	end
 	return {
@@ -61,7 +65,7 @@ end
 local function trySystemUnix()
 	local res = {assimp_INC = "/usr/include/assimp"};
 	if not checkdir(res.assimp_INC) then
-		verbose("[assimp.lua] includes not found at [".. res.assimp_INC .."]")
+		message_verbose("includes not found at [".. res.assimp_INC .."]")
 		return
 	end
 	for ld in pairs {"/usr/lib", "/usr/local/lib", "/usr/lib64", "/usr/local/lib64"} do
@@ -78,7 +82,7 @@ end
 local function trySystemWindows()
 	local res = {assimp_DIR = "C:/Program Files (x86)/assimp"};
 	if not checkdir(res.assimp_DIR) then
-		verbose("[assimp.lua] not found at [".. res.assimp_DIR .."]")
+		message_verbose("not found at [".. res.assimp_DIR .."]")
 		return
 	end
 	-- todo
@@ -87,14 +91,14 @@ end
 
 local function tryBuild()
 	if not checkdir(ldir) then
-		verbose("[assimp.lua] not found at [".. ldir .."]")
+		message_verbose("not found at [".. ldir .."]")
 		return
 	end
 	if not checkdir(linc) then
-		verbose("[assimp.lua] includes not found at [".. linc .."]")
+		message_verbose("includes not found at [".. linc .."]")
 		return
 	end
-	shexecf('/bin/mkdir -p "%s"', lbdir);
+	shexecf('mkdir -p "%s"', lbdir);
 	local fmt = 'cmake -S "%s" -B "%s" -DCMAKE_BUILD_TYPE=Release -DASSIMP_WARNINGS_AS_ERRORS=OFF -DASSIMP_BUILD_TESTS=OFF';
 	if targetOS == "Windows" then fmt = fmt .. ' -G "MinGW Makefiles"' end
 	shexecf(fmt, ldir, lbdir);
@@ -107,7 +111,7 @@ local function tryBuild()
 		ilib = lbdir .. "/lib/libassimp.dll.a";
 	end
 	if not checkfile(ilib) then
-		verbose("[assimp.lua] library not found at [".. ilib .."]");
+		message_verbose("library not found at [".. ilib .."] - after a build attempt");
 		return
 	end
 	return {
@@ -120,7 +124,7 @@ end
 
 local function tryClone()
 	if not checkdir(ldir) then
-		verbose("[assimp.lua] not found at [".. ldir .."]. cloning...")
+		message_verbose("not found at [".. ldir .."]. cloning...")
 		shexecf('git clone https://github.com/assimp/assimp "%s"', ldir)
 	end
 	shexecf('git -C "%s" checkout c35200e38ea8f058812b83de2ef32c6093b0ece2', ldir) -- 5.4.3
@@ -135,16 +139,9 @@ local acttab = {
 	["0"] = function() end
 };
 
-for i, v in ipairs(lact) do
-	local res = acttab[v]()
-	if res then
-		local fp = io.open(outFile, "w")
-		if not fp then error("failed to open outFile") end
-		for k, kv in pairs(res) do
-			fp:write(k .. "=" .. kv .. "\n")
-		end
-		break
-	end
+local success = main_action(lact, acttab, outFile, message_verbose);
+if success then
+	return
 end
 
-return 0
+message_error("no one of methods worked");

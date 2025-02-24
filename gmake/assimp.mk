@@ -14,5 +14,5 @@ assimp_CACHEDIR = build/$(targetOS)/$(buildProfile)
 
 # arguments: permitted actions, OS, profile, file for output
 define assimp_Prepare
-	lua gmake/assimp.lua $(assimp_ACT) $(targetOS) $(buildProfile) $(assimp_CACHEDIR)
+	$(lua_BIN) gmake/assimp.lua $(assimp_ACT) $(targetOS) $(buildProfile) $(assimp_CACHEDIR)
 endef
